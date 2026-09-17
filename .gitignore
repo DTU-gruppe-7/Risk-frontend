@@ -1,0 +1,72 @@
+# ============================================================================
+#  Risk frontend - .gitignore
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Afhængigheder og build-output
+# ----------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+*.tsbuildinfo
+
+# ----------------------------------------------------------------------------
+# Logs og cache
+# ----------------------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+.npm/
+
+# ----------------------------------------------------------------------------
+# Miljøvariabler
+#
+# Vite udstiller alt med VITE_-præfiks til browseren, så læg aldrig
+# hemmeligheder i disse filer - kun API-URL'er og lignende.
+# ----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ----------------------------------------------------------------------------
+# Test
+# ----------------------------------------------------------------------------
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ----------------------------------------------------------------------------
+# Editor og IDE
+# ----------------------------------------------------------------------------
+.idea/
+*.swp
+*~
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+
+# ----------------------------------------------------------------------------
+# Operativsystem
+# ----------------------------------------------------------------------------
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ----------------------------------------------------------------------------
+# Bemærk: src/types/backend.d.ts er IKKE ignoreret.
+# Den er genereret, men skal versioneres, så repoet kan bygge uden at
+# backenden kører. Se README for hvordan den opdateres.
+# ----------------------------------------------------------------------------

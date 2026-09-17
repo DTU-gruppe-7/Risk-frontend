@@ -1,0 +1,33 @@
+# ============================================================================
+#  Risk frontend - .gitattributes
+#
+#  Normaliserer linjeskift, så Windows- og Mac-maskiner ikke skiftes til at
+#  ændre hver eneste linje i hver eneste fil.
+# ============================================================================
+
+# Git gemmer altid LF. Arbejdsmappen får LF på alle platforme.
+* text=auto eol=lf
+
+# Filer der kræver CRLF for at virke på Windows
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell-scripts skal altid have LF, også når de checkes ud på Windows
+*.sh  text eol=lf
+
+# Binære filer må ikke røres
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.pdf   binary
+
+# Genereret output: fold det sammen i diffs, men versionér det
+package-lock.json     -diff linguist-generated
+src/types/backend.d.ts linguist-generated
