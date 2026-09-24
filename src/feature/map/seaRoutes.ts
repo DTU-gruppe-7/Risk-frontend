@@ -1,0 +1,30 @@
+import type { SeaRoute } from './types'
+
+// Dashed sea connections between territories (visual only - adjacency rules live in the backend)
+export const seaRoutes: SeaRoute[] = [
+  { from: 'alaska', to: 'kamchatka', path: 'M67,58.75 Q67,29 107,29 L642,29 Q682,29 682,54.5' },
+  { from: 'northwest-territory', to: 'greenland', path: 'M202,71.5 L227,67.25' },
+  { from: 'greenland', to: 'quebec', path: 'M227,67.25 L222,97' },
+  { from: 'greenland', to: 'ontario', path: 'M227,67.25 L182,114' },
+  { from: 'greenland', to: 'iceland', path: 'M302,80 L317,92.75' },
+  { from: 'great-britain', to: 'scandinavia', path: 'M328,137.8 L362,118.25' },
+  { from: 'scandinavia', to: 'iceland', path: 'M362,118.25 L337,109.75' },
+  { from: 'iceland', to: 'great-britain', path: 'M337,109.75 L328,137.8' },
+  { from: 'great-britain', to: 'northern-europe', path: 'M328,137.8 L371,141.2' },
+  { from: 'northern-europe', to: 'scandinavia', path: 'M371,141.2 L362,118.25' },
+  { from: 'great-britain', to: 'western-europe', path: 'M339,165 L344,169.25' },
+  { from: 'western-europe', to: 'north-africa', path: 'M340,227.05 L340,234.7' },
+  { from: 'north-africa', to: 'southern-europe', path: 'M380,228.75 L402,224.5' },
+  { from: 'southern-europe', to: 'egypt', path: 'M402,224.5 L402,241.5' },
+  { from: 'brazil', to: 'north-africa', path: 'M292,284 L317,284' },
+  { from: 'middle-east', to: 'east-africa', path: 'M492,288.25 L492,296.75' },
+  { from: 'south-africa', to: 'madagascar', path: 'M457,373.25 L477,373.25' },
+  { from: 'madagascar', to: 'east-africa', path: 'M477,373.25 L467,330.75' },
+  { from: 'indonesia', to: 'new-guinea', path: 'M632,301 L660,301' },
+  { from: 'new-guinea', to: 'western-australia', path: 'M660,301 L660,341.8' },
+  { from: 'western-australia', to: 'indonesia', path: 'M660,341.8 L632,301' },
+  { from: 'indonesia', to: 'siam', path: 'M632,301 L632,279.75' },
+  { from: 'new-guinea', to: 'eastern-australia', path: 'M660,301 L682,335' },
+  { from: 'kamchatka', to: 'japan', path: 'M664,148 L677,173.5' },
+  { from: 'japan', to: 'mongolia', path: 'M677,173.5 L662,173.5' },
+]
