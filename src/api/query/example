@@ -1,0 +1,10 @@
+/** // e.g. src/feature/game/queries.ts (later)
+export const gameQuery = (gameId: string) =>
+  apiQuery<GameDto>(queryKeys.games.detail(gameId), `/api/games/${gameId}`)
+
+// In a component:
+const { data, isPending, error } = useQuery(gameQuery(gameId))
+
+// In the SignalR handler (step 8), typed: wrong shape is a compile error
+queryClient.setQueryData(gameQuery(gameId).queryKey, (old) => ...)
+*/
