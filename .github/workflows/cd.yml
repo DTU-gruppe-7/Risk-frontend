@@ -9,7 +9,7 @@ permissions:
 
 concurrency:
   group: cd-${{ github.ref_name }}
-  cancel-in-progress: false   # afbryd aldrig en igangværende deploy
+  cancel-in-progress: false # afbryd aldrig en igangværende deploy
 
 env:
   REGISTRY: ghcr.io/dtu-gruppe-7
@@ -23,9 +23,9 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
-      packages: write       # push til GHCR
-      id-token: write       # keyless signering (OIDC)
-      attestations: write   # build provenance
+      packages: write # push til GHCR
+      id-token: write # keyless signering (OIDC)
+      attestations: write # build provenance
     outputs:
       frontend: ${{ steps.frontend.outputs.digest }}
     steps:
