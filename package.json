@@ -7,12 +7,21 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "preview": "vite preview",
-    "gen:api": "openapi-typescript ../Risk/Risk.Api/openapi.json -o src/types/backend.d.ts"
+    "gen:api": "openapi-typescript ../backend/Risk.Api/openapi.json -o src/types/backend.d.ts",
+    "prepare": "husky"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.11",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.104.0",
+    "@tanstack/react-query-devtools": "^5.104.0",
+    "@tanstack/react-router": "^1.170.41",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -24,10 +33,21 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.5.1",
     "openapi-typescript": "^7.13.0",
+    "prettier": "3.9.9",
+    "prettier-plugin-tailwindcss": "0.8.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",
     "vite": "^8.3.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js}": [
+      "eslint --max-warnings=0 --no-warn-ignored",
+      "prettier --check"
+    ],
+    "*.{json,css,html,md}": "prettier --check"
   },
   "overrides": {
     "openapi-typescript": {
