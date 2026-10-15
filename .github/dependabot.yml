@@ -7,13 +7,13 @@ updates:
       interval: weekly
     groups:
       react:
-        patterns: ["react", "react-dom", "@types/react*"]
+        patterns: ['react', 'react-dom', '@types/react*']
       tanstack:
-        patterns: ["@tanstack/*"]
+        patterns: ['@tanstack/*']
       lint-format:
-        patterns: ["eslint*", "@eslint/*", "typescript-eslint", "prettier*"]
+        patterns: ['eslint*', '@eslint/*', 'typescript-eslint', 'prettier*']
       build:
-        patterns: ["vite", "@vitejs/*", "typescript", "tailwindcss", "@tailwindcss/*"]
+        patterns: ['vite', '@vitejs/*', 'typescript', 'tailwindcss', '@tailwindcss/*']
 
   - package-ecosystem: docker
     directory: /

@@ -5,7 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
   schedule:
-    - cron: "23 4 * * 1"   # mandag morgen: fang nye regler mod uændret kode
+    - cron: '23 4 * * 1' # mandag morgen: fang nye regler mod uændret kode
 
 permissions:
   contents: read
