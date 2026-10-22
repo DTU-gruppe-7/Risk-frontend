@@ -3,7 +3,7 @@ import { MAP_HEIGHT, MAP_WIDTH, MAP_VIEWBOX, territoryGeometries } from './geome
 import TerritoryLabel from './TerritoryLabel'
 import { seaRoutes } from './seaRoutes'
 import type { TerritoryId, TerritoryNames, TerritoryState, TerritoryInfo, Player } from './types'
-import { CONTINENT_COLORS, FOG_COLOR } from './colers'
+import { BLIZZARD_COLOR, CONTINENT_COLORS, FOG_COLOR } from './colors'
 
 interface BoardProps {
   territories: TerritoryState[]
@@ -18,23 +18,34 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
   const stateById = new Map(territories.map((t) => [t.territoryId, t]))
   const infoById = new Map(infos.map((i) => [i.id, i]))
   const playersById = new Map(players.map((p) => [p.id, p]))
+
+  // Blizzards are public and always shown, but never part of play.
+  const isBlizzard = (id: TerritoryId) => stateById.get(id)?.blizzard ?? false
   const isVisible = (id: TerritoryId) => stateById.get(id)?.visible ?? false
+  const isPlayable = (id: TerritoryId) => isVisible(id) && !isBlizzard(id)
+
   const selected =
-    selectedId && isVisible(selectedId)
+    selectedId && isPlayable(selectedId)
       ? territoryGeometries.find((t) => t.id === selectedId)
       : undefined
   const neighbors = selected
     ? territoryGeometries.filter(
-        (t) => infoById.get(selected.id)?.adjacent.includes(t.id) && isVisible(t.id),
+        (t) => infoById.get(selected.id)?.adjacent.includes(t.id) && isPlayable(t.id),
       )
     : []
+
+  function fillFor(id: TerritoryId) {
+    if (isBlizzard(id)) return BLIZZARD_COLOR
+    const info = infoById.get(id)
+    return isVisible(id) && info ? CONTINENT_COLORS[info.continent] : FOG_COLOR
+  }
 
   return (
     <svg viewBox={MAP_VIEWBOX} className="h-full w-full">
       {/* Layer 1: background */}
       <image href={mapBackground} width={MAP_WIDTH} height={MAP_HEIGHT} />
 
-      {/* Layer 2: sea routes */}
+      {/* Layer 2: sea routes (a route into a blizzard leads nowhere, so it is hidden) */}
       <g
         fill="none"
         stroke="#4a3522"
@@ -45,7 +56,7 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
         pointerEvents="none"
       >
         {seaRoutes
-          .filter((route) => isVisible(route.from) && isVisible(route.to))
+          .filter((route) => isPlayable(route.from) && isPlayable(route.to))
           .map((route) => (
             <path key={`${route.from}-${route.to}`} d={route.path} />
           ))}
@@ -54,25 +65,23 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
       {/* Layer 3: territories */}
       <g>
         {territoryGeometries.map((territory) => {
-          const info = infoById.get(territory.id)
-          const visible = isVisible(territory.id)
-          const fill = visible && info ? CONTINENT_COLORS[info.continent] : FOG_COLOR
-          const isSelected = visible && territory.id === selectedId
+          const playable = isPlayable(territory.id)
+          const isSelected = playable && territory.id === selectedId
 
           return (
             <path
               key={territory.id}
               id={territory.id}
               d={territory.path}
-              fill={fill}
+              fill={fillFor(territory.id)}
               fillOpacity={isSelected ? 1.0 : 0.75}
               stroke="#4a3522"
               strokeWidth={0.7}
               strokeLinejoin="round"
               style={{ mixBlendMode: 'multiply' }}
-              pointerEvents={visible ? 'auto' : 'none'}
+              pointerEvents={playable ? 'auto' : 'none'}
               className={
-                visible
+                playable
                   ? 'cursor-pointer transition-[fill-opacity] duration-150 hover:[fill-opacity:1.0]'
                   : undefined
               }
@@ -94,7 +103,7 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
         </g>
       )}
 
-      {/* Layer 5: names and troops */}
+      {/* Layer 5: names and troops (blizzards get a name but no troops) */}
       <g pointerEvents="none">
         {territoryGeometries.map((territory) => {
           const state = stateById.get(territory.id)
@@ -105,7 +114,7 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
               position={territory.labelPosition}
               name={names[territory.id] ?? territory.id}
               ownerColor={state.ownerId ? (playersById.get(state.ownerId)?.color ?? null) : null}
-              units={state.units}
+              units={state.blizzard ? null : state.units}
             />
           )
         })}

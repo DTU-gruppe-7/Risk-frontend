@@ -47,7 +47,7 @@ export function useGameHub(gameId: string) {
         }
         hasJoined.current = true
       })
-      .catch((error: unknown) => console.error(`Failed to join game $(gameId)`, error))
+      .catch((error: unknown) => console.error(`Failed to join game ${gameId}`, error))
 
     return () => {
       gameHub.invoke('LeaveGame', gameId).catch(() => {

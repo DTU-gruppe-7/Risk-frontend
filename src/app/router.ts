@@ -11,6 +11,7 @@ import { queryClient } from '../api/query/queryClient'
 import LoginPage from '../auth/LoginPage'
 import GamePage, { GameErrorPage } from '../feature/game/GamePage'
 import { gameQuery } from '../feature/game/queries'
+import { mapQuery } from '../feature/map/queries'
 import App from './App'
 
 interface RouterContext {
@@ -53,15 +54,20 @@ const authenticatedRoute = createRoute({
 const lobbyRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/',
+  loader: ({ context }) => context.queryClient.ensureQueryData(mapQuery()),
   component: App, // TODO: replace with the lobby page
 })
 
 const gameRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/games/$gameId',
-  // Fetch the game before the page renders. Uses the TanStack cache, so data
-  // that is already cachec (e.g. preloaded on hover) is not fetched again.
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(gameQuery(params.gameId)),
+  // Fetch the game and the map before the page renders. Uses the TanStack cache, so data
+  // that is already cached (e.g. preloaded on hover) is not fetched again.
+  loader: ({ context, params }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(gameQuery(params.gameId)),
+      context.queryClient.ensureQueryData(mapQuery()),
+    ]),
   component: GamePage,
   errorComponent: GameErrorPage,
 })

@@ -10,3 +10,5 @@ export const CONTINENT_COLORS: Record<ContinentId, string> = {
 }
 
 export const FOG_COLOR = '#8c8579'
+
+export const BLIZZARD_COLOR = '#e9eef2'

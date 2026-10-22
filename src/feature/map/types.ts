@@ -16,7 +16,25 @@ export interface TerritoryGeometry {
   labelPosition: Point // hvor navn + enheder tegnes
 }
 
-// ---- Backend: spilregler (mock indtil backend er klar) ----
+// ---- Backend: det statiske kort (GET /api/map, seedet i databasen) ----
+export interface MapContinentDto {
+  id: ContinentId
+  name: string
+  captureBonus: number
+}
+
+export interface MapTerritoryDto {
+  id: TerritoryId
+  continentId: ContinentId
+  neighborIds: TerritoryId[]
+}
+
+export interface MapDto {
+  continents: MapContinentDto[]
+  territories: MapTerritoryDto[]
+}
+
+// Kortet i den form Board bruger det
 export interface TerritoryInfo {
   id: TerritoryId
   continent: ContinentId
@@ -31,7 +49,10 @@ export interface TerritoryState {
   territoryId: TerritoryId
   ownerId: PlayerId | null // null = ingen ejer endnu
   units: number
+  /** Fog of war: om spilleren må se feltet. Beregnes pr. spiller i backenden. */
   visible: boolean
+  /** Blizzard-mode: ufremkommeligt hele spillet. Offentligt, altid synligt. */
+  blizzard: boolean
 }
 
 export interface Player {

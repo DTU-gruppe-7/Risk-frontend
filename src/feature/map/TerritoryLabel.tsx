@@ -27,18 +27,23 @@ function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelPro
       >
         {name}
       </text>
-      <circle cy={5} r={6} fill={ownerColor ?? PAPER} stroke={INK} strokeWidth={0.8} />
-      <text
-        y={5}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontFamily="Georgia, serif"
-        fontWeight="bold"
-        fontSize={7.5}
-        fill={ownerColor ? PAPER : INK}
-      >
-        {units}
-      </text>
+      {/* No troop badge when there are no troops to show (e.g. a blizzard) */}
+      {units !== null && (
+        <>
+          <circle cy={5} r={6} fill={ownerColor ?? PAPER} stroke={INK} strokeWidth={0.8} />
+          <text
+            y={5}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="Georgia, serif"
+            fontWeight="bold"
+            fontSize={7.5}
+            fill={ownerColor ? PAPER : INK}
+          >
+            {units}
+          </text>
+        </>
+      )}
     </g>
   )
 }

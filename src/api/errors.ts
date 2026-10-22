@@ -22,7 +22,7 @@ export class ApiError extends Error {
     this.problem = problem
   }
 
-  get isUnautorized() {
+  get isUnauthorized() {
     return this.status === 401
   }
 
