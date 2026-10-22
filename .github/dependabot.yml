@@ -14,6 +14,13 @@ updates:
         patterns: ['eslint*', '@eslint/*', 'typescript-eslint', 'prettier*']
       build:
         patterns: ['vite', '@vitejs/*', 'typescript', 'tailwindcss', '@tailwindcss/*']
+    ignore:
+      # typescript-eslint 8.x understøtter kun TypeScript < 6.1
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # Typerne skal matche Node-versionen i Dockerfile
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: docker
     directory: /
@@ -21,6 +28,10 @@ updates:
     # Dagligt: base-images genbygges med sikkerhedsrettelser, og Trivy i CI fejler på dem
     schedule:
       interval: daily
+    ignore:
+      # Kun LTS-versioner af Node; skift major manuelt sammen med @types/node
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
