@@ -1,10 +1,10 @@
 import type { TerritoryId } from '../map/types'
 
 // DTOs as the backend sends them. Enum values are PascalCase, because the backend
-// serializes enums with JsonStringEnumConverter uing the C# menber names.
+// serializes enums with JsonStringEnumConverter using the C# member names.
 
 export type GameStatus = 'Lobby' | 'InProgress' | 'Finished'
-export type GamePhase = 'Deployment' | 'Attack' | ' Fortify'
+export type GamePhase = 'Deployment' | 'Attack' | 'Fortify'
 
 export interface PlayerDto {
   id: string

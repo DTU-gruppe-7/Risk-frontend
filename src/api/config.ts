@@ -5,7 +5,7 @@ export const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? ''
 
 export const AUTH_ENDPOINTS = {
   login: '/api/auth/login',
-  register: '/api/auth/regiser',
+  register: '/api/auth/register',
   refresh: '/api/auth/refresh',
   logout: '/api/auth/logout',
 } as const

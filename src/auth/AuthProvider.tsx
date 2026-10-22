@@ -3,13 +3,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { restoreSession } from '../api/auth/auth'
 import { getSession, subscribeSession } from '../api/auth/session'
 
-interface AuthProviderProbs {
+interface AuthProviderProps {
   children: ReactNode
-  /** Shown while the session is being restores on startup */
+  /** Shown while the session is being restored on startup */
   fallback?: ReactNode
 }
 
-export function AuthProvider({ children, fallback = null }: AuthProviderProbs) {
+export function AuthProvider({ children, fallback = null }: AuthProviderProps) {
   const queryClient = useQueryClient()
   const [isRestoring, setIsRestoring] = useState(true)
 

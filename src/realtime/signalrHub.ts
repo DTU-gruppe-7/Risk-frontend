@@ -1,17 +1,23 @@
 import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr'
-import { API_BASE_URL } from '../api/config'
-import { getValidAccessToken } from '../api/auth/session'
 import type { HubEvents, HubMethods, HubStatus, TypedHub } from './typedHub'
 
 const MAX_RECONNECT_DELAY_MS = 30_000
 
+export interface SignalRHubOptions {
+  /** Called on every connect and reconnect, so a fresh token is always used. */
+  getAccessToken: () => Promise<string | null>
+}
+
+/** SignalR implementation of TypedHub. Knows nothing about sessions or config:
+ *  the URL and token source are passed in by the caller.
+ */
 export function createSignalRHub<TEvents extends HubEvents, TMethods extends HubMethods>(
-  path: string,
+  url: string,
+  { getAccessToken }: SignalRHubOptions,
 ): TypedHub<TEvents, TMethods> {
   const connection = new HubConnectionBuilder()
-    .withUrl(API_BASE_URL + path, {
-      // Called on every connect and reconnect, so a fresh token is always used.
-      accessTokenFactory: async () => (await getValidAccessToken()) ?? '',
+    .withUrl(url, {
+      accessTokenFactory: async () => (await getAccessToken()) ?? '',
     })
     // Keep retrying forever with exponential backoff: to max 30s.
     // The default policy gives up after four attempts.
@@ -59,7 +65,7 @@ export function createSignalRHub<TEvents extends HubEvents, TMethods extends Hub
 
     on(event, handler) {
       // SignalR's own types are untyped (any[]). The cast is safe because
-      // TypedHub has already checked the andler againts TEvents.
+      // TypedHub has already checked the handler against TEvents.
       const callback = handler as unknown as (...args: unknown[]) => void
       connection.on(event, callback)
       return () => connection.off(event, callback)
