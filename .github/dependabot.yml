@@ -38,3 +38,7 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    groups:
+      # init og analyze skal have samme version, ellers fejler CodeQL
+      codeql:
+        patterns: ['github/codeql-action*']
