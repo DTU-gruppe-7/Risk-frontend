@@ -9,6 +9,7 @@ import {
 import { getSession, subscribeSession } from '../api/auth/session'
 import { queryClient } from '../api/query/queryClient'
 import LoginPage from '../auth/LoginPage'
+import RegisterPage from '../auth/RegisterPage'
 import GamePage, { GameErrorPage } from '../feature/game/GamePage'
 import { gameQuery } from '../feature/game/queries'
 import { mapQuery } from '../feature/map/queries'
@@ -40,6 +41,15 @@ const loginRoute = createRoute({
   component: LoginPage,
 })
 
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'register',
+  beforeLoad: () => {
+    if (getSession()) throw redirect({ to: '/' })
+  },
+  component: RegisterPage,
+})
+
 // Layout route without a path: every child requires a logged-in user.
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -55,7 +65,7 @@ const lobbyRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/',
   loader: ({ context }) => context.queryClient.ensureQueryData(mapQuery()),
-  component: App, // TODO: replace with the lobby page
+  component: App,
 })
 
 const gameRoute = createRoute({
@@ -74,6 +84,7 @@ const gameRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  registerRoute,
   authenticatedRoute.addChildren([lobbyRoute, gameRoute]),
 ])
 

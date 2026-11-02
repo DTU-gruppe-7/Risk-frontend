@@ -11,6 +11,7 @@ export const mockPlayers: Player[] = [
 
 export const mockTerritoryStates: TerritoryState[] = territoryGeometries.map(
   (territory, index) => ({
+    stateId: territory.id,
     territoryId: territory.id,
     ownerId: mockPlayers[index % mockPlayers.length].id,
     units: ((index * 7) % 12) + 1,

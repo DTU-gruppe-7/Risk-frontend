@@ -46,6 +46,7 @@ export type TerritoryNames = Record<TerritoryId, string>
 
 // ---- Backend: spiltilstand (ændrer sig løbende) ----
 export interface TerritoryState {
+  stateId: string
   territoryId: TerritoryId
   ownerId: PlayerId | null // null = ingen ejer endnu
   units: number

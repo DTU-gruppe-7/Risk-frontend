@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/useAuth'
+import { queryKeys } from '../../api/query/queryKeys'
 import { gameHub } from '../../realtime/gameHub'
 import { acquireHub } from '../../realtime/hubLease'
 import { useHubStatus } from '../../realtime/useHubStatus'
@@ -30,6 +31,7 @@ export function useGameHub(gameId: string) {
         // Ignore updates older than what we already have.
         current && current.version >= game.version ? current : game,
       )
+      void queryClient.invalidateQueries({ queryKey: queryKeys.games.territories(game.id) })
     })
   }, [queryClient])
 

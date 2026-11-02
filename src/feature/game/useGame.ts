@@ -1,7 +1,8 @@
+import { useMemo } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { mockPlayers, mockTerritoryStates } from '../map/mock'
-import { gameQuery } from './queries'
+import { gameQuery, territoriesQuery } from './queries'
 import { useGameHub } from './useGameHub'
+import type { Player, TerritoryState } from '../map/types'
 
 /**
  * Everything a game page needs: the game, the voard in UI shape and the live
@@ -11,9 +12,24 @@ import { useGameHub } from './useGameHub'
 export function useGame(gameId: string) {
   const connectionStatus = useGameHub(gameId)
   const { data: game } = useSuspenseQuery(gameQuery(gameId))
+  const { data: territories } = useSuspenseQuery(territoriesQuery(gameId))
 
-  // TODO: map GameDto til board-format, når API'et returnerer territorier og spillere.
-  const board = { territories: mockTerritoryStates, players: mockPlayers }
+  const board = useMemo(() => {
+    const players: Player[] = game.players.map((player) => ({
+      id: player.id,
+      name: player.userId,
+      color: player.color,
+    }))
+    const territoryStates: TerritoryState[] = territories.map((territory) => ({
+      stateId: territory.id,
+      territoryId: territory.identifier,
+      ownerId: territory.ownerId,
+      units: territory.troopCount,
+      visible: true,
+      blizzard: territory.isBlizzard,
+    }))
+    return { territories: territoryStates, players }
+  }, [game.players, territories])
 
   return {
     game,
