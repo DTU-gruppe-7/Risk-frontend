@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useLogin } from './useAuth'
 
 export default function LoginPage() {
@@ -48,6 +48,9 @@ export default function LoginPage() {
           Log ind
         </button>
         {loginMutation.error && <p className="text-red-400">{loginMutation.error.message}</p>}
+        <Link to="/register" className="text-center text-stone-300 hover:text-white">
+          Opret en ny bruger
+        </Link>
       </form>
     </main>
   )

@@ -1,5 +1,3 @@
-import type { TerritoryId } from '../map/types'
-
 // DTOs as the backend sends them. Enum values are PascalCase, because the backend
 // serializes enums with JsonStringEnumConverter using the C# member names.
 
@@ -9,7 +7,6 @@ export type GamePhase = 'Deployment' | 'Attack' | 'Fortify'
 export interface PlayerDto {
   id: string
   userId: string
-  userName: string
   color: string
   turnOrder: number
   reinforcementTroops: number
@@ -17,19 +14,60 @@ export interface PlayerDto {
 }
 
 export interface TerritoryDto {
-  identifier: TerritoryId // e.g. north-africa, mathes the map ids
-  ownerId: string | null // PlayerDto.id
+  id: string
+  identifier: string
+  ownerId: string | null
   troopCount: number
+  isBlizzard: boolean
 }
 
 export interface GameDto {
   id: string
+  version: number
   hostId: string
   state: GameStatus
-  currentPhase: GamePhase
   currentPlayerId: string | null
+  currentPhase: GamePhase
+  settings: GameSettingsDto | null
   players: PlayerDto[]
-  territories: TerritoryDto[]
-  /** Increases on every change. Lets the client ignore updates older than what it has */
-  version: number
+  createdAt: string
+  startedAt: string | null
+  endedAt: string | null
+}
+
+export interface GameSummaryDto {
+  id: string
+  hostId: string
+  state: GameStatus
+  playerCount: number
+  maxPlayers: number
+  createdAt: string
+}
+
+export interface GameSettingsDto {
+  id: string
+  gameId: string
+  maxPlayers: number
+  timer: number
+  turnTimeLimit: number
+  hasFogOfWar: boolean
+  hasMissions: boolean
+  blizzardCount: number
+}
+
+export interface CreateGameRequest {
+  maxPlayers?: number
+  timer?: number
+  turnTimeLimit?: number
+  hasFogOfWar?: boolean
+  hasMissions?: boolean
+  blizzardCount?: number
+}
+
+export interface JoinGameRequest {
+  color: string
+}
+
+export interface DeployTroopsRequest {
+  troops: number
 }

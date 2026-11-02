@@ -7,5 +7,6 @@ export const queryKeys = {
     all: () => ['games'] as const,
     list: () => ['games', 'list'] as const,
     detail: (gameId: string) => ['games', 'detail', gameId] as const,
+    territories: (gameId: string) => ['games', 'territories', gameId] as const,
   },
 }
