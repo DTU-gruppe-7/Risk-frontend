@@ -17,6 +17,11 @@ RUN npm run build
 
 # ---------- Runtime ----------
 FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03 AS runtime
+# Midlertidigt: base-imaget mangler rettelser til brotli-libs (CVE-2026-111497) og
+# curl/libcurl (CVE-2026-92392), som Trivy fejler på. Fjern igen, når Dependabot
+# bumper til et nyere digest.
+USER root
+RUN apk upgrade --no-cache
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # Imaget kører allerede som uid 101, men det skrives eksplicit, så det er tydeligt
