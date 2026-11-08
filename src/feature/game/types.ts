@@ -26,6 +26,7 @@ export interface GameDto {
   version: number
   hostId: string
   state: GameStatus
+  winnerId: string | null
   currentPlayerId: string | null
   currentPhase: GamePhase
   settings: GameSettingsDto | null
@@ -33,6 +34,13 @@ export interface GameDto {
   createdAt: string
   startedAt: string | null
   endedAt: string | null
+  turnStartedAt: string | null
+}
+
+/** Pushed by the game hub: the same shapes as GET /api/games/{id} and /territories. */
+export interface GameUpdate {
+  game: GameDto
+  territories: TerritoryDto[]
 }
 
 export interface GameSummaryDto {
