@@ -1,11 +1,12 @@
 import { API_BASE_URL, HUB_URLS } from '../api/config'
 import { getValidAccessToken } from '../api/auth/session'
-import type { GameDto } from '../feature/game/types'
+import type { GameUpdate } from '../feature/game/types'
 import { createSignalRHub } from './signalrHub'
 
-// Events the server pushes to all clients in a game. Names must match the backend.
+// Events the server pushes to the clients watching a game. Names must match the backend's IGameClient.
 export type GameHubEvents = {
-  GameUpdated: (game: GameDto) => void
+  /** Sent on join and after every change, filtered for the receiver (fog of war). */
+  GameUpdated: (update: GameUpdate) => void
 }
 
 // Methods the client calls on the server.
