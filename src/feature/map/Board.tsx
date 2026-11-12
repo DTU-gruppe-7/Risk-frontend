@@ -11,10 +11,23 @@ interface BoardProps {
   names: TerritoryNames
   players: Player[]
   selectedId: TerritoryId | null
+  /** Territories to outline as possible choices, e.g. what the selected one can attack. */
+  highlightedIds?: TerritoryId[]
+  /** The chosen one among the highlighted territories. */
+  targetId?: TerritoryId | null
   onTerritoryClick: (id: TerritoryId) => void
 }
 
-function Board({ territories, infos, players, names, selectedId, onTerritoryClick }: BoardProps) {
+function Board({
+  territories,
+  infos,
+  players,
+  names,
+  selectedId,
+  highlightedIds = [],
+  targetId = null,
+  onTerritoryClick,
+}: BoardProps) {
   const stateById = new Map(territories.map((t) => [t.territoryId, t]))
   const infoById = new Map(infos.map((i) => [i.id, i]))
   const playersById = new Map(players.map((p) => [p.id, p]))
@@ -28,11 +41,10 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
     selectedId && isPlayable(selectedId)
       ? territoryGeometries.find((t) => t.id === selectedId)
       : undefined
-  const neighbors = selected
-    ? territoryGeometries.filter(
-        (t) => infoById.get(selected.id)?.adjacent.includes(t.id) && isPlayable(t.id),
-      )
-    : []
+  const highlighted = territoryGeometries.filter(
+    (t) => highlightedIds.includes(t.id) && isPlayable(t.id),
+  )
+  const target = highlighted.find((t) => t.id === targetId)
 
   function fillFor(id: TerritoryId) {
     if (isBlizzard(id)) return BLIZZARD_COLOR
@@ -66,7 +78,7 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
       <g>
         {territoryGeometries.map((territory) => {
           const playable = isPlayable(territory.id)
-          const isSelected = playable && territory.id === selectedId
+          const isSelected = playable && (territory.id === selectedId || territory.id === targetId)
 
           return (
             <path
@@ -91,17 +103,21 @@ function Board({ territories, infos, players, names, selectedId, onTerritoryClic
         })}
       </g>
 
-      {/* Layer 4: selection + neighbors */}
-
-      {selected && (
-        <g fill="none" strokeLinejoin="round" pointerEvents="none">
-          {neighbors.map((n) => (
-            <path key={n.id} d={n.path} stroke="#fff6dc" strokeWidth={1.2} strokeDasharray="3 2" />
-          ))}
-          <path d={selected.path} stroke="#4a3522" strokeWidth={2.0} />
-          <path d={selected.path} stroke="#fff6dc" strokeWidth={1.0} />
-        </g>
-      )}
+      {/* Layer 4: selection, possible choices and the chosen target */}
+      <g fill="none" strokeLinejoin="round" pointerEvents="none">
+        {highlighted.map((t) => (
+          <path key={t.id} d={t.path} stroke="#fff6dc" strokeWidth={1.2} strokeDasharray="3 2" />
+        ))}
+        {[selected, target].map(
+          (t) =>
+            t && (
+              <g key={t.id}>
+                <path d={t.path} stroke="#4a3522" strokeWidth={2.0} />
+                <path d={t.path} stroke="#fff6dc" strokeWidth={1.0} />
+              </g>
+            ),
+        )}
+      </g>
 
       {/* Layer 5: names and troops (blizzards get a name but no troops) */}
       <g pointerEvents="none">

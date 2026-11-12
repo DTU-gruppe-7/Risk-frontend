@@ -26,6 +26,7 @@ export interface GameDto {
   version: number
   hostId: string
   state: GameStatus
+  winnerId: string | null
   currentPlayerId: string | null
   currentPhase: GamePhase
   settings: GameSettingsDto | null
@@ -33,6 +34,7 @@ export interface GameDto {
   createdAt: string
   startedAt: string | null
   endedAt: string | null
+  turnStartedAt: string | null
 }
 
 export interface GameSummaryDto {
@@ -70,4 +72,83 @@ export interface JoinGameRequest {
 
 export interface DeployTroopsRequest {
   troops: number
+}
+
+/** Ends the current phase. Must name the phase that follows, so a repeated request cannot skip one. */
+export interface SetPhaseRequest {
+  phase: GamePhase
+}
+
+// Territory ids in the requests below are territory state ids (TerritoryDto.id), not map slugs.
+
+export interface AttackRequest {
+  fromTerritoryId: string
+  toTerritoryId: string
+  /** Dice the attacker rolls: 1-3, and fewer than the troops in the attacking territory. */
+  attackingTroopsCount: number
+  /** Dice the defender rolls: 1-2, at most the troops in the defending territory. */
+  defendingTroopsCount: number
+}
+
+export interface BlitzRequest {
+  fromTerritoryId: string
+  toTerritoryId: string
+}
+
+export interface BattleRoundDto {
+  attackerDice: number[]
+  defenderDice: number[]
+  attackerLosses: number
+  defenderLosses: number
+}
+
+export interface AttackResultDto extends BattleRoundDto {
+  territoryConquered: boolean
+}
+
+export interface BlitzResultDto {
+  totalAttackerLosses: number
+  totalDefenderLosses: number
+  territoryConquered: boolean
+  rounds: BattleRoundDto[]
+}
+
+/** Moves troops into a territory that was just conquered, which completes the conquest. */
+export interface ConquestRequest {
+  fromTerritoryId: string
+  toTerritoryId: string
+  movingTroopsCount: number
+}
+
+export interface FortifyRequest {
+  fromTerritoryId: string
+  toTerritoryId: string
+  troops: number
+}
+
+export type BonusCardType = 'Infantry' | 'Cavalry' | 'Artillery' | 'Wild'
+
+export interface BonusCardDto {
+  id: string
+  playerId: string | null
+  type: BonusCardType
+  /** Map slug of the territory on the card, or null for a wild card. */
+  territoryIdentifier: string | null
+  used: boolean
+}
+
+export interface TradeCardsRequest {
+  cardIds: string[]
+}
+
+export interface TradeCardsResponse {
+  troopsAwarded: number
+}
+
+export interface MissionCardDto {
+  id: string
+  playerId: string | null
+  title: string
+  description: string
+  isCompleted: boolean
 }

@@ -8,5 +8,8 @@ export const queryKeys = {
     list: () => ['games', 'list'] as const,
     detail: (gameId: string) => ['games', 'detail', gameId] as const,
     territories: (gameId: string) => ['games', 'territories', gameId] as const,
+    // The current user's own cards. The cache is cleared when the user changes (see AuthProvider).
+    hand: (gameId: string) => ['games', 'hand', gameId] as const,
+    missions: (gameId: string) => ['games', 'missions', gameId] as const,
   },
 }

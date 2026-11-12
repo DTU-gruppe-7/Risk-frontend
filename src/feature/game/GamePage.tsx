@@ -1,115 +1,73 @@
-import { useState, type FormEvent } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams, type ErrorComponentProps } from '@tanstack/react-router'
-import { queryKeys } from '../../api/query/queryKeys'
 import { useAuth } from '../../auth/useAuth'
 import { isApiError } from '../../api/errors'
 import Board from '../map/Board'
 import { useTerritoryInfos } from '../map/queries'
 import { territoryNames } from '../map/names'
-import type { TerritoryId } from '../map/types'
-import { deployTroops } from './mutations'
+import ActionPanel from './components/ActionPanel'
+import CardsPanel from './components/CardsPanel'
+import GameOver from './components/GameOver'
+import MissionPanel from './components/MissionPanel'
+import PlayerList from './components/PlayerList'
+import TurnStatus from './components/TurnStatus'
+import WaitingRoom from './components/WaitingRoom'
 import { useGame } from './useGame'
+import { useTurn } from './useTurn'
 
 export default function GamePage() {
   const { gameId } = useParams({ from: '/authenticated/games/$gameId' })
-  const { board, connectionStatus, game } = useGame(gameId)
+  const { game, board, me, connectionStatus } = useGame(gameId)
   const { user } = useAuth()
-  const queryClient = useQueryClient()
   const territoryInfos = useTerritoryInfos()
-  const [selectedId, setSelectedId] = useState<TerritoryId | null>(null)
-  const [troopsToPlace, setTroopsToPlace] = useState(1)
-  const deployMutation = useMutation({
-    mutationFn: ({ territoryId, troops }: { territoryId: string; troops: number }) =>
-      deployTroops(gameId, territoryId, { troops }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.games.detail(gameId) })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.games.territories(gameId) })
-    },
-  })
-
-  const currentPlayer = game.players.find((player) => player.userId === user?.id)
-  const selectedTerritory = board.territories.find(
-    (territory) => territory.territoryId === selectedId,
-  )
-  const canDeploy =
-    game.currentPhase === 'Deployment' &&
-    currentPlayer !== undefined &&
-    selectedTerritory?.ownerId === currentPlayer.id &&
-    currentPlayer.reinforcementTroops > 0
-
-  function selectTerritory(id: TerritoryId) {
-    setSelectedId((previous) => (previous === id ? null : id))
-    setTroopsToPlace(1)
-    deployMutation.reset()
-  }
-
-  function submitDeployment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!selectedTerritory || !canDeploy) return
-    deployMutation.mutate({
-      territoryId: selectedTerritory.stateId,
-      troops: Math.min(troopsToPlace, currentPlayer.reinforcementTroops),
-    })
-  }
+  const turn = useTurn(game, me, board.territories, territoryInfos)
+  const names = territoryNames.da
 
   return (
-    <main className="relative flex h-screen w-screen items-center justify-center bg-stone-900 p-4">
-      {connectionStatus !== 'connected' && (
-        <div className="absolute top-4 rounded bg-amber-700 px-3 py-1 text-stone-100">
-          {connectionStatus === 'reconnecting' ? 'Forbindelsen er mistet...' : 'Forbinder...'}
-        </div>
-      )}
-      <Board
-        territories={board.territories}
-        infos={territoryInfos}
-        names={territoryNames.da}
-        players={board.players}
-        selectedId={selectedId}
-        onTerritoryClick={selectTerritory}
-      />
-      {currentPlayer && (
-        <aside className="absolute top-4 right-4 w-64 rounded bg-stone-800 p-4 text-stone-100 shadow-lg">
-          <p className="font-semibold">Dine tropper</p>
-          <p className="mb-3 text-2xl">{currentPlayer.reinforcementTroops}</p>
-          {selectedTerritory && (
-            <form onSubmit={submitDeployment} className="flex flex-col gap-2">
-              <p className="text-sm text-stone-300">Valgt: {selectedTerritory.territoryId}</p>
-              {canDeploy ? (
-                <>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Antal tropper
-                    <input
-                      type="number"
-                      min={1}
-                      max={currentPlayer.reinforcementTroops}
-                      value={troopsToPlace}
-                      onChange={(event) => setTroopsToPlace(Number(event.target.value))}
-                      className="rounded bg-stone-700 px-2 py-1"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    disabled={deployMutation.isPending}
-                    className="rounded bg-emerald-700 px-3 py-2 hover:bg-emerald-600 disabled:opacity-50"
-                  >
-                    {deployMutation.isPending ? 'Placering...' : 'Placér tropper'}
-                  </button>
-                </>
-              ) : (
-                <p className="text-sm text-stone-300">Vælg et af dine egne territorier.</p>
-              )}
-              {deployMutation.error && (
-                <p className="text-sm text-red-300">Tropperne kunne ikke placeres.</p>
-              )}
-            </form>
-          )}
+    <main className="flex h-screen w-screen gap-4 bg-stone-900 p-4">
+      <aside className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto">
+        {game.state === 'Lobby' && <WaitingRoom game={game} isHost={game.hostId === user?.id} />}
+        {game.state === 'InProgress' && (
+          <TurnStatus game={game} me={me} connectionStatus={connectionStatus} />
+        )}
+        {game.state === 'Finished' && <GameOver game={game} me={me} />}
+        <PlayerList game={game} me={me} territories={board.territories} />
+        {/* Missions are dealt when the game starts, so there is nothing to show in the lobby. */}
+        {me && game.settings?.hasMissions && game.state !== 'Lobby' && (
+          <MissionPanel gameId={gameId} />
+        )}
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <Board
+          territories={board.territories}
+          infos={territoryInfos}
+          names={names}
+          players={board.players}
+          selectedId={turn.source?.territoryId ?? null}
+          highlightedIds={turn.targetIds}
+          targetId={turn.target?.territoryId}
+          onTerritoryClick={turn.select}
+        />
+      </div>
+
+      {me && game.state === 'InProgress' && (
+        <aside className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto">
+          {/* Keyed by turn, so results and errors from an earlier turn are not shown again. */}
+          <ActionPanel
+            key={`actions:${turn.id}`}
+            gameId={gameId}
+            me={me}
+            turn={turn}
+            names={names}
+          />
+          <CardsPanel
+            key={`cards:${turn.id}`}
+            gameId={gameId}
+            playerId={me.id}
+            canTrade={turn.mode === 'deploy'}
+            names={names}
+          />
         </aside>
-      )}
-      {board.territories.length === 0 && (
-        <div className="absolute bottom-4 rounded bg-stone-800 px-3 py-2 text-stone-100">
-          Spillet er endnu ikke startet.
-        </div>
       )}
     </main>
   )
