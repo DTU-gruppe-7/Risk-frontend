@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/useAuth'
 import { isApiError } from '../../api/errors'
 import Board from '../map/Board'
 import { MAP_HEIGHT, MAP_WIDTH } from '../map/geometry'
-import { useTerritoryInfos } from '../map/queries'
+import { useContinents, useTerritoryInfos } from '../map/queries'
 import { territoryNames } from '../map/names'
 import ActionPanel from './components/ActionPanel'
 import CardsPanel from './components/CardsPanel'
@@ -53,6 +53,7 @@ export default function GamePage() {
   const { game, board, me, connectionStatus } = useGame(gameId)
   const { user } = useAuth()
   const territoryInfos = useTerritoryInfos()
+  const continents = useContinents()
   const turn = useTurn(game, me, board.territories, territoryInfos)
   const names = territoryNames.da
   // The side panels are closed until asked for, so the map gets the whole screen.
@@ -103,6 +104,7 @@ export default function GamePage() {
           <Board
             territories={board.territories}
             infos={territoryInfos}
+            continents={continents}
             names={names}
             players={board.players}
             selectedId={turn.source?.territoryId ?? null}
