@@ -1,5 +1,5 @@
 import type { PlayerId, TerritoryId, TerritoryInfo, TerritoryState } from '../map/types'
-import type { BonusCardDto, GameDto, PlayerDto } from './types'
+import type { BonusCardDto, BonusCardType, GameDto, PlayerDto } from './types'
 
 // Client-side copies of the game rules, used only to guide the player: what can be clicked and
 // which buttons are enabled. The backend validates every action and is the authority.
@@ -137,6 +137,50 @@ export function selectTerritory(
   return interaction.sources.includes(clickedId)
     ? { sourceId: clickedId, targetId: null }
     : NO_SELECTION
+}
+
+export const CARD_TYPE_NAMES: Record<BonusCardType, string> = {
+  Infantry: 'Infanteri',
+  Cavalry: 'Kavaleri',
+  Artillery: 'Artilleri',
+  Wild: 'Joker',
+}
+
+/**
+ * The sets that can be traded and the troops each one gives. These are the classic fixed values;
+ * the backend decides what a trade really gives, so keep them in step with it.
+ */
+export const TRADE_SETS: { types: BonusCardType[]; troops: number }[] = [
+  { types: ['Infantry', 'Infantry', 'Infantry'], troops: 4 },
+  { types: ['Cavalry', 'Cavalry', 'Cavalry'], troops: 6 },
+  { types: ['Artillery', 'Artillery', 'Artillery'], troops: 8 },
+  { types: ['Infantry', 'Cavalry', 'Artillery'], troops: 10 },
+]
+
+/**
+ * The troops a set is expected to give, or null when that is not known: the set is not valid,
+ * or it holds a wild card, where the backend picks what the wild card counts as.
+ */
+export function tradeValueOf(cards: BonusCardDto[]) {
+  if (!isValidCardSet(cards) || cards.some((card) => card.type === 'Wild')) return null
+  const types = cards.map((card) => card.type).sort()
+  const match = TRADE_SETS.find((set) => [...set.types].sort().join() === types.join())
+  return match?.troops ?? null
+}
+
+// The classic rising values: the first sets give these, and every set after that gives 5 more.
+const PROGRESSIVE_TRADE_VALUES = [4, 6, 8, 10, 12, 15]
+const PROGRESSIVE_TRADE_STEP = 5
+
+/**
+ * The troops a set gives under the progressive card bonus, where only the number of sets traded
+ * before it counts, not which cards are in it. Like TRADE_SETS, keep it in step with the backend.
+ */
+export function progressiveTradeValue(setsTraded: number) {
+  const last = PROGRESSIVE_TRADE_VALUES.length - 1
+  return setsTraded <= last
+    ? PROGRESSIVE_TRADE_VALUES[setsTraded]
+    : PROGRESSIVE_TRADE_VALUES[last] + (setsTraded - last) * PROGRESSIVE_TRADE_STEP
 }
 
 /** Three cards can be traded when they are alike, all different, or include a wild card. */

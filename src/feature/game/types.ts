@@ -35,6 +35,11 @@ export interface GameDto {
   startedAt: string | null
   endedAt: string | null
   turnStartedAt: string | null
+  /**
+   * Card sets traded in by all players so far. Decides what the next set gives when the card
+   * bonus is progressive. Not sent by the backend yet; counted as 0 until it is.
+   */
+  cardSetsTraded?: number
 }
 
 export interface GameSummaryDto {
@@ -46,6 +51,9 @@ export interface GameSummaryDto {
   createdAt: string
 }
 
+/** 'Fixed': a set's value depends on its cards. 'Progressive': each set traded gives more than the last. */
+export type CardBonusMode = 'Fixed' | 'Progressive'
+
 export interface GameSettingsDto {
   id: string
   gameId: string
@@ -55,6 +63,8 @@ export interface GameSettingsDto {
   hasFogOfWar: boolean
   hasMissions: boolean
   blizzardCount: number
+  /** Not sent by the backend yet; the bonus is fixed until it is. */
+  cardBonusMode?: CardBonusMode
 }
 
 export interface CreateGameRequest {

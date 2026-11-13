@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams, type ErrorComponentProps } from '@tanstack/react-router'
 import { useAuth } from '../../auth/useAuth'
@@ -24,6 +24,28 @@ const MAP_FRAME_STYLE = {
   width: `min(100cqw, 100cqh * ${MAP_WIDTH} / ${MAP_HEIGHT})`,
 }
 
+// The boxes on top of the map are drawn for a map this wide, and grow and shrink with it.
+const DESIGN_MAP_WIDTH = 1150
+const MIN_SCALE = 0.6
+const MAX_SCALE = 2
+
+/** How much to scale what lies on top of the map, following the width the map is drawn at. */
+function useMapScale() {
+  const [frame, setFrame] = useState<HTMLDivElement | null>(null)
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    if (!frame) return
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    observer.observe(frame)
+    return () => observer.disconnect()
+  }, [frame])
+
+  // Before the first measurement there is no width to go by.
+  const scale = width > 0 ? width / DESIGN_MAP_WIDTH : 1
+  return { frameRef: setFrame, scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale)) }
+}
+
 type PanelId = 'players' | 'mission' | 'cards'
 
 export default function GamePage() {
@@ -35,6 +57,7 @@ export default function GamePage() {
   const names = territoryNames.da
   // The side panels are closed until asked for, so the map gets the whole screen.
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null)
+  const { frameRef, scale } = useMapScale()
 
   const isPlaying = game.state === 'InProgress'
   // Missions are dealt when the game starts, so there is nothing to show in the lobby.
@@ -76,7 +99,7 @@ export default function GamePage() {
 
       <div className="[container-type:size] relative flex min-h-0 flex-1 items-center justify-center">
         {/* Exactly as large as the drawn map, so things can be placed relative to the map itself. */}
-        <div className="relative" style={MAP_FRAME_STYLE}>
+        <div ref={frameRef} className="relative" style={MAP_FRAME_STYLE}>
           <Board
             territories={board.territories}
             infos={territoryInfos}
@@ -90,15 +113,17 @@ export default function GamePage() {
 
           {/* The sea west of South America is the largest part of the map without territories. */}
           {me && isPlaying && (
-            <div className="absolute bottom-[2%] left-[1%] flex max-h-[42%] w-52 flex-col overflow-y-auto">
-              {/* Keyed by turn, so results and errors from an earlier turn are not shown again. */}
-              <ActionPanel
-                key={`actions:${turn.id}`}
-                gameId={gameId}
-                me={me}
-                turn={turn}
-                names={names}
-              />
+            <div className="absolute bottom-[2%] left-[1%] max-h-[42%] overflow-y-auto">
+              <div className="flex w-52 flex-col" style={{ zoom: scale }}>
+                {/* Keyed by turn, so results and errors from an earlier turn are not shown again. */}
+                <ActionPanel
+                  key={`actions:${turn.id}`}
+                  gameId={gameId}
+                  me={me}
+                  turn={turn}
+                  names={names}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -112,22 +137,45 @@ export default function GamePage() {
           </div>
         )}
 
-        {openPanel && (
-          <aside className="absolute top-3 right-3 flex max-h-[calc(100%-1.5rem)] w-72 flex-col overflow-y-auto">
-            {openPanel === 'players' && (
-              <PlayerList game={game} me={me} territories={board.territories} />
-            )}
-            {openPanel === 'mission' && hasMission && <MissionPanel gameId={gameId} />}
-            {openPanel === 'cards' && me && hasCards && (
-              <CardsPanel
-                key={`cards:${turn.id}`}
-                gameId={gameId}
-                playerId={me.id}
-                canTrade={turn.mode === 'deploy'}
-                names={names}
-              />
-            )}
+        {openPanel && openPanel !== 'cards' && (
+          <aside className="absolute top-3 right-3 max-h-[calc(100%-1.5rem)] overflow-y-auto">
+            <div className="flex w-72 flex-col" style={{ zoom: scale }}>
+              {openPanel === 'players' && (
+                <PlayerList game={game} me={me} territories={board.territories} />
+              )}
+              {openPanel === 'mission' && hasMission && <MissionPanel gameId={gameId} />}
+            </div>
           </aside>
+        )}
+
+        {/* The cards are only shown when asked for, so they take the middle of the screen. */}
+        {openPanel === 'cards' && me && hasCards && (
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-black/40 p-3"
+            onClick={() => setOpenPanel(null)}
+          >
+            <div
+              className="max-h-full overflow-y-auto"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {/* No wider than the cards need: the texts wrap instead of stretching the box. */}
+              <div className="flex w-min min-w-72 flex-col" style={{ zoom: scale }}>
+                <CardsPanel
+                  key={`cards:${turn.id}`}
+                  gameId={gameId}
+                  playerId={me.id}
+                  canTrade={turn.mode === 'deploy'}
+                  setsTraded={
+                    game.settings?.cardBonusMode === 'Progressive'
+                      ? (game.cardSetsTraded ?? 0)
+                      : null
+                  }
+                  territories={board.territories}
+                  names={names}
+                />
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </main>
