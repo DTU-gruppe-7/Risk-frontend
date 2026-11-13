@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import type { TerritoryNames, TerritoryState } from '../../map/types'
-import { Button, ErrorText, Hint, Panel, TroopPicker } from './ui'
+import { ActionBox, Button, ErrorText, Hint, TroopPicker } from './ui'
 
 interface MoveTroopsPanelProps {
   title: string
@@ -30,14 +30,14 @@ export default function MoveTroopsPanel(props: MoveTroopsPanelProps) {
   const troops = Math.min(wanted, max)
 
   return (
-    <Panel title={title}>
+    <ActionBox title={title}>
       {from && to ? (
         <>
           <Hint>
             Fra {nameOf(from)} ({from.units}) til {nameOf(to)} ({to.units})
           </Hint>
           <TroopPicker label="Antal tropper" max={max} value={troops} onChange={setWanted} />
-          <Button disabled={isPending} onClick={() => onMove(from, to, troops)}>
+          <Button size="sm" disabled={isPending} onClick={() => onMove(from, to, troops)}>
             {submitLabel}
           </Button>
         </>
@@ -46,6 +46,6 @@ export default function MoveTroopsPanel(props: MoveTroopsPanelProps) {
       )}
       <ErrorText error={error} />
       {props.children}
-    </Panel>
+    </ActionBox>
   )
 }

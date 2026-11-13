@@ -3,7 +3,7 @@ import type { TerritoryNames, TerritoryState } from '../../map/types'
 import { MAX_ATTACK_DICE } from '../rules'
 import type { GameActions } from '../useGameActions'
 import BattleResult from './BattleResult'
-import { Button, ErrorText, Hint, Panel, TroopPicker } from './ui'
+import { ActionBox, Button, ErrorText, Hint, TroopPicker } from './ui'
 
 interface AttackPanelProps {
   from: TerritoryState | null
@@ -24,19 +24,30 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
   const dice = Math.min(wantedDice, maxDice)
 
   return (
-    <Panel title="Angreb">
+    <ActionBox title="Angreb">
       {from && to ? (
         <>
           <Hint>
             {nameOf(from)} ({from.units}) angriber {nameOf(to)} ({to.units})
           </Hint>
           <TroopPicker label="Terninger" max={maxDice} value={dice} onChange={setWantedDice} />
-          <Button disabled={isPending} onClick={() => battle.mutate({ from, to, dice })}>
-            Angrib
-          </Button>
-          <Button disabled={isPending} onClick={() => battle.mutate({ from, to })}>
-            Blitz (til det er afgjort)
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={() => battle.mutate({ from, to, dice })}
+            >
+              Angrib
+            </Button>
+            <Button
+              size="sm"
+              title="Angrib igen og igen, til det er afgjort"
+              disabled={isPending}
+              onClick={() => battle.mutate({ from, to })}
+            >
+              Blitz
+            </Button>
+          </div>
         </>
       ) : (
         <Hint>
@@ -47,9 +58,14 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
       )}
       {battle.data && <BattleResult report={battle.data} />}
       <ErrorText error={battle.error ?? endPhase.error} />
-      <Button variant="secondary" disabled={isPending} onClick={() => endPhase.mutate('Fortify')}>
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={isPending}
+        onClick={() => endPhase.mutate('Fortify')}
+      >
         Afslut angreb
       </Button>
-    </Panel>
+    </ActionBox>
   )
 }

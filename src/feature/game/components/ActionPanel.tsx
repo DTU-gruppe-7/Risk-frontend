@@ -87,6 +87,7 @@ export default function ActionPanel({ gameId, me, turn, names }: ActionPanelProp
           onMove={(from, to, troops) => actions.fortify.mutate({ from, to, troops })}
         >
           <Button
+            size="sm"
             variant="secondary"
             disabled={actions.fortify.isPending || actions.endPhase.isPending}
             onClick={() => actions.endPhase.mutate('Deployment')}

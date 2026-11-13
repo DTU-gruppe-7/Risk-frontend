@@ -7,7 +7,7 @@ export default function BattleResult({ report }: { report: BattleReport }) {
     report.rounds.reduce((sum, round) => sum + round[side], 0)
 
   return (
-    <div className="rounded bg-stone-700 p-2 text-sm">
+    <div className="rounded bg-stone-700/70 p-2 text-xs">
       {lastRound && (
         <p>
           Dig: {lastRound.attackerDice.join(' ')} · Forsvarer: {lastRound.defenderDice.join(' ')}
