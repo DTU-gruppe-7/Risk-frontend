@@ -7,6 +7,7 @@ export type GamePhase = 'Deployment' | 'Attack' | 'Fortify'
 export interface PlayerDto {
   id: string
   userId: string
+  userName: string
   color: string
   turnOrder: number
   reinforcementTroops: number

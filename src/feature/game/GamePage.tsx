@@ -106,7 +106,7 @@ export default function GamePage() {
           )}
         </aside>
       )}
-      {board.territories.length === 0 && (
+      {game.state === 'Lobby' && (
         <div className="absolute bottom-4 rounded bg-stone-800 px-3 py-2 text-stone-100">
           Spillet er endnu ikke startet.
         </div>

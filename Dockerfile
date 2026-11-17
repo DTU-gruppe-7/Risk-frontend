@@ -4,7 +4,7 @@
 # og så Dependabot kan finde og opdatere dem.
 
 # ---------- Build ----------
-FROM node:24-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS build
+FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -17,11 +17,11 @@ RUN npm run build
 
 # ---------- Runtime ----------
 FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03 AS runtime
-# Midlertidigt: base-imaget mangler rettelser til brotli-libs (CVE-2026-111497) og
-# curl/libcurl (CVE-2026-92392), som Trivy fejler på. Fjern igen, når Dependabot
-# bumper til et nyere digest.
+# Midlertidigt: base-imaget mangler løbende rettelser til Alpine-pakker (fx libxslt,
+# libexpat, musl, zlib, curl), som Trivy fejler på. Fuld opgradering af alle pakker;
+# fjern igen, når Dependabot bumper til et nyere digest.
 USER root
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache --available
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # Imaget kører allerede som uid 101, men det skrives eksplicit, så det er tydeligt
