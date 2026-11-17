@@ -4,7 +4,7 @@ React 19 + Vite + TanStack Router/Query + Tailwind + SignalR client for the onli
 
 ## Local Development
 
-Prerequisites: Node.js 24 and npm.
+Prerequisites: Node.js 26 and npm. The version is pinned in `.nvmrc`; with [nvm](https://github.com/nvm-sh/nvm) (or nvm-windows) run `nvm install 26 && nvm use 26` (nvm-windows does not read `.nvmrc`). `engine-strict` makes `npm ci` fail on the wrong Node version.
 
 ```bash
 npm ci
