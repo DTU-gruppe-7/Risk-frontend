@@ -16,17 +16,13 @@ COPY . .
 RUN npm run build
 
 # ---------- Runtime ----------
-FROM nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03 AS runtime
-# Midlertidigt: base-imaget mangler løbende rettelser til Alpine-pakker (fx libxslt,
-# libexpat, musl, zlib, curl), som Trivy fejler på. Fuld opgradering af alle pakker;
-# fjern igen, når Dependabot bumper til et nyere digest.
-USER root
-RUN apk upgrade --no-cache --available
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Chainguards nginx-image: kun nginx og dets biblioteker, ingen shell og ingen
+# pakkemanager. Det genbygges dagligt med sikkerhedsrettelser, og Dependabot bumper
+# digestet. Uden shell er der ingen HEALTHCHECK i imaget; /healthz tjekkes udefra.
+FROM cgr.dev/chainguard/nginx:latest@sha256:1d942360cecf98fe7e45c0470b23734b3c62868544380f920d1c1fa9de6e8e27 AS runtime
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-# Imaget kører allerede som uid 101, men det skrives eksplicit, så det er tydeligt
-# ved review og ikke afhænger af base-imagets standard
-USER 101
+# Imaget kører allerede som uid 65532 (nonroot), men det skrives eksplicit, så det er
+# tydeligt ved review og ikke afhænger af base-imagets standard
+USER 65532
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
