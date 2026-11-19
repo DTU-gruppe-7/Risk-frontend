@@ -78,7 +78,11 @@ export default function CardsPanel(props: CardsPanelProps) {
 
   return (
     <Panel title={`Kort (${cards.length})`}>
-      {cards.length === 0 && <Hint>Du får et kort, når du erobrer et territorium i din tur.</Hint>}
+      {cards.length === 0 && (
+        <Hint>
+          Erobrer du et territorium i din tur, får du et kort, når du afslutter angrebsfasen.
+        </Hint>
+      )}
       {/* Fixed card widths, so the panel is exactly as wide as the cards in it need. */}
       <ul
         className="grid justify-center gap-3"
