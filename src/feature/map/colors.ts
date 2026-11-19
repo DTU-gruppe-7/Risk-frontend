@@ -9,6 +9,9 @@ export const CONTINENT_COLORS: Record<ContinentId, string> = {
   australia: '#8f65b3',
 }
 
+/** The border around a continent that no single player holds. */
+export const NEUTRAL_BORDER_COLOR = '#9c9585'
+
 export const FOG_COLOR = '#8c8579'
 
 export const BLIZZARD_COLOR = '#e9eef2'
