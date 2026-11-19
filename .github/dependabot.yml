@@ -25,7 +25,8 @@ updates:
   - package-ecosystem: docker
     directory: /
     target-branch: develop
-    # Dagligt: base-images genbygges med sikkerhedsrettelser, og Trivy i CI fejler på dem
+    # Dagligt: base-images genbygges med sikkerhedsrettelser (Chainguard hver dag), og
+    # CD's Trivy-gate blokerer deploy, indtil digestet er bumpet
     schedule:
       interval: daily
     ignore:
