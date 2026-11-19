@@ -128,6 +128,12 @@ export default function GamePage() {
               </div>
             </div>
           )}
+        </aside>
+      )}
+      {game.state === 'Lobby' && (
+        <div className="absolute bottom-4 rounded bg-stone-800 px-3 py-2 text-stone-100">
+          Spillet er endnu ikke startet.
+
         </div>
 
         {game.state !== 'InProgress' && (

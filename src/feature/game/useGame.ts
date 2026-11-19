@@ -26,6 +26,7 @@ export function useGame(gameId: string) {
     const players: Player[] = game.players.map((player) => ({
       id: player.id,
       name: playerName(player),
+
       color: player.color,
     }))
     const territoryStates: TerritoryState[] = territories.map((territory) => ({
@@ -33,6 +34,8 @@ export function useGame(gameId: string) {
       territoryId: territory.identifier,
       ownerId: territory.ownerId,
       units: territory.troopCount,
+      // Under fog of war the backend only sends the territories this player can see, so every
+      // territory here is visible. Board draws the missing ones as fog.
       visible: true,
       blizzard: territory.isBlizzard,
     }))
