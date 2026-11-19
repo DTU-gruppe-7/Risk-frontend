@@ -36,6 +36,12 @@ export interface GameDto {
   startedAt: string | null
   endedAt: string | null
   turnStartedAt: string | null
+  /**
+   * Card sets traded in by all players so far. Decides what the next set gives when the card
+   * bonus is progressive. Not sent by the backend yet; counted as 0 until it is.
+   */
+  cardSetsTraded?: number
+}
 
 /** Pushed by the game hub: the same shapes as GET /api/games/{id} and /territories. */
 export interface GameUpdate {

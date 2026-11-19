@@ -26,7 +26,6 @@ export function useGame(gameId: string) {
     const players: Player[] = game.players.map((player) => ({
       id: player.id,
       name: playerName(player),
-
       color: player.color,
     }))
     const territoryStates: TerritoryState[] = territories.map((territory) => ({
