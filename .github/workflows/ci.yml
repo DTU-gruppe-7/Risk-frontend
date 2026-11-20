@@ -81,6 +81,15 @@ jobs:
           echo "$h" | grep -qi '^cache-control: public, max-age=31536000, immutable'
           echo "$h" | grep -qi '^content-security-policy: '
 
+      - name: Tjek PWA-filer
+        run: |
+          headers() { curl -fsS -o /dev/null -D - "http://localhost:8080$1" | tr -d '\r'; }
+          headers /manifest.webmanifest | grep -qi '^content-type: application/manifest+json'
+          headers /sw.js | grep -qi '^cache-control: no-cache'
+          html="$(curl -fsS http://localhost:8080/)"
+          echo "$html" | grep -q '<html lang="da"'
+          echo "$html" | grep -q 'rel="manifest"'
+
       - name: Container-log ved fejl
         if: failure()
         run: docker logs fe || true
