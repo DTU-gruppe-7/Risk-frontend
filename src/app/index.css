@@ -1,1 +1,10 @@
 @import 'tailwindcss';
+
+@keyframes backdrop-drift {
+  from {
+    transform: scale(1.1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.18) translate(-2%, 1.5%);
+  }
+}
