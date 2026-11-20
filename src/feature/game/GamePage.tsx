@@ -12,6 +12,7 @@ import CardsPanel from './components/CardsPanel'
 import GameOver from './components/GameOver'
 import MissionPanel from './components/MissionPanel'
 import PlayerList from './components/PlayerList'
+import TurnBanner from './components/TurnBanner'
 import TurnStatus from './components/TurnStatus'
 import WaitingRoom from './components/WaitingRoom'
 import { handQuery } from './queries'
@@ -128,6 +129,8 @@ export default function GamePage() {
               </div>
             </div>
           )}
+
+          <TurnBanner game={game} me={me} turnId={turn.id} scale={scale} />
         </div>
 
         {game.state !== 'InProgress' && (
