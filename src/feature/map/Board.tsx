@@ -324,18 +324,21 @@ function Board({
         })}
       </g>
 
-      {/* Layer 8: names and troops (blizzards get a name but no troops) */}
+      {/* Layer 8: names and troops. Blizzards get a name but no troops, and a territory hidden by
+          fog of war gets a "?", as neither its owner nor its troops can be seen. */}
       <g pointerEvents="none">
         {territoryGeometries.map((territory) => {
           const state = stateById.get(territory.id)
-          if (!state || !isVisible(territory.id)) return null
+          const isHidden = !state || !isVisible(territory.id)
           return (
             <TerritoryLabel
               key={territory.id}
               position={territory.labelPosition}
               name={names[territory.id] ?? territory.id}
-              ownerColor={state.ownerId ? (playersById.get(state.ownerId)?.color ?? null) : null}
-              units={state.blizzard ? null : state.units}
+              ownerColor={
+                !isHidden && state.ownerId ? (playersById.get(state.ownerId)?.color ?? null) : null
+              }
+              badge={isHidden ? '?' : state.blizzard ? null : state.units}
             />
           )
         })}

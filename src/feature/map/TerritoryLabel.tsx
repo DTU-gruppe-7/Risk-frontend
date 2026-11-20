@@ -5,11 +5,15 @@ import type { Point } from './types'
 interface TerritoryLabelProps {
   position: Point
   name: string
-  units: number | null
+  /**
+   * What the troop badge shows: the troops, "?" when they are hidden by fog of war, or null for
+   * no badge (e.g. a blizzard, which holds no troops).
+   */
+  badge: number | '?' | null
   ownerColor: string | null
 }
 
-function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelProps) {
+function TerritoryLabel({ position, name, ownerColor, badge }: TerritoryLabelProps) {
   return (
     <g transform={`translate(${position.x} ${position.y})`}>
       <text
@@ -26,8 +30,7 @@ function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelPro
       >
         {name}
       </text>
-      {/* No troop badge when there are no troops to show (e.g. a blizzard) */}
-      {units !== null && (
+      {badge !== null && (
         <>
           <circle
             cy={BADGE_OFFSET_Y}
@@ -45,7 +48,7 @@ function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelPro
             fontSize={7.5}
             fill={ownerColor ? PAPER : INK}
           >
-            {units}
+            {badge}
           </text>
         </>
       )}
