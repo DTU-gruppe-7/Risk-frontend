@@ -41,6 +41,15 @@ const UPCOMING_TRADES = ['Nu', 'Næste', 'Derefter']
 /** The extra troops for a card showing a territory the player holds, e.g. "2 ekstra tropper". */
 const OWNED_BONUS_TEXT = `${OWNED_TERRITORY_BONUS} ekstra tropper`
 
+/** The small heading above each part of the rules at the bottom of the panel. */
+function SectionHeading({ children, className = '' }: { children: string; className?: string }) {
+  return (
+    <h3 className={`text-xs font-semibold tracking-wide text-stone-400 uppercase ${className}`}>
+      {children}
+    </h3>
+  )
+}
+
 /** What a set is called in the list of what each set gives. */
 function setName(types: BonusCardType[]) {
   const [first] = types
@@ -51,6 +60,7 @@ function setName(types: BonusCardType[]) {
 export default function CardsPanel(props: CardsPanelProps) {
   const { gameId, playerId, cards, canTrade, setsTraded, territories, names } = props
   const trade = useTradeCards(gameId)
+  const isFixed = setsTraded === null
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   // Cards leave the hand when they are traded, so only count the ones still in it.
@@ -158,27 +168,28 @@ export default function CardsPanel(props: CardsPanelProps) {
       <ErrorText error={trade.error} />
 
       <div className="flex flex-col gap-1 border-t border-stone-700 pt-2">
-        <h3 className="text-xs font-semibold tracking-wide text-stone-400 uppercase">
-          Et sæt giver
-        </h3>
-        {setsTraded === null ? (
-          <ul className="flex flex-col gap-1 text-sm">
-            {TRADE_SETS.map((set) => (
-              <li key={set.types.join()} className="flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  {set.types.map((type, index) => (
-                    <CardIcon key={index} type={type} className="h-5 w-5" />
-                  ))}
-                  <span className="ml-1 text-stone-300">{setName(set.types)}</span>
-                </span>
+        <SectionHeading>{isFixed ? 'Et sæt giver' : 'Gyldige sæt'}</SectionHeading>
+        <ul className="flex flex-col gap-1 text-sm">
+          {TRADE_SETS.map((set) => (
+            <li key={set.types.join()} className="flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                {set.types.map((type, index) => (
+                  <CardIcon key={index} type={type} className="h-5 w-5" />
+                ))}
+                <span className="ml-1 text-stone-300">{setName(set.types)}</span>
+              </span>
+              {/* With a progressive bonus every set gives the same, shown below instead. */}
+              {isFixed && (
                 <span>
                   <span className="font-semibold tabular-nums">{set.troops}</span> tropper
                 </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
+              )}
+            </li>
+          ))}
+        </ul>
+        {!isFixed && (
           <>
+            <SectionHeading className="mt-2">Et sæt giver</SectionHeading>
             <ol className="grid grid-cols-3 gap-2 text-center">
               {UPCOMING_TRADES.map((label, index) => (
                 <li
@@ -201,7 +212,7 @@ export default function CardsPanel(props: CardsPanelProps) {
         )}
         <p className="flex items-center gap-1 text-xs text-stone-400">
           <CardIcon type="Wild" className="h-4 w-4 shrink-0" />
-          Jokeren kan erstatte et hvilket som helst kort.
+          Et wild card kan erstatte et hvilket som helst kort.
         </p>
         <p className="text-xs text-stone-400">
           Ejer du territoriet på et af kortene, får du {OWNED_BONUS_TEXT} på det. Højst én gang pr.
