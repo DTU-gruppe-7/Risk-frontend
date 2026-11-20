@@ -1,22 +1,23 @@
-import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { queryKeys } from '../api/query/queryKeys'
 import { useAuth } from '../auth/useAuth'
 import { createGame, joinGame, startGame } from '../feature/game/mutations'
 import { gamesQuery, territoriesQuery } from '../feature/game/queries'
-import type { GameSummaryDto } from '../feature/game/types'
+import CreateGamePanel, { type CreateGameInput } from '../feature/lobby/CreateGamePanel'
+import InProgressGamesPanel from '../feature/lobby/InProgressGamesPanel'
+import MapBackdrop from '../feature/lobby/MapBackdrop'
+import OpenGamesPanel from '../feature/lobby/OpenGamesPanel'
 
-const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange']
-
+/** The lobby: the board blurred in the background, with panels to create, join and start games. */
 function App() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const games = useQuery(gamesQuery())
-  const [color, setColor] = useState(colors[0])
-  const [maxPlayers, setMaxPlayers] = useState(4)
-  const [selectedColors, setSelectedColors] = useState<Record<string, string>>({})
+
+  const openGames = games.data?.filter((game) => game.state === 'Lobby') ?? []
+  const inProgressGames = games.data?.filter((game) => game.state === 'InProgress') ?? []
 
   const joinMutation = useMutation({
     mutationFn: ({ gameId, color }: { gameId: string; color: string }) =>
@@ -28,9 +29,12 @@ function App() {
   })
 
   const createMutation = useMutation({
-    mutationFn: createGame,
-    onSuccess: async (game) => {
+    mutationFn: async ({ request, color }: CreateGameInput) => {
+      const game = await createGame(request)
       await joinGame(game.id, { color })
+      return game
+    },
+    onSuccess: async (game) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.games.all() })
       void navigate({ to: '/games/$gameId', params: { gameId: game.id } })
     },
@@ -46,196 +50,51 @@ function App() {
     },
   })
 
-  function submitCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    createMutation.mutate({ maxPlayers })
-  }
-
-  function handleJoin(game: GameSummaryDto) {
-    joinMutation.mutate({ gameId: game.id, color: selectedColors[game.id] ?? colors[0] })
-  }
-
   return (
-    <main className="min-h-screen bg-stone-900 p-6 text-stone-100">
-      <div className="mx-auto flex max-w-4xl flex-col gap-6">
-        <h1 className="text-3xl font-semibold">Risk lobby</h1>
+    <div className="relative min-h-screen text-stone-100">
+      <MapBackdrop />
 
-        <section className="rounded bg-stone-800 p-5">
-          <h2 className="mb-3 text-xl">Opret et spil</h2>
-          <form onSubmit={submitCreate} className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1">
-              <span className="text-sm text-stone-300">Antal spillere</span>
-              <input
-                type="number"
-                min={2}
-                max={6}
-                value={maxPlayers}
-                onChange={(event) => setMaxPlayers(Number(event.target.value))}
-                className="w-24 rounded bg-stone-700 px-2 py-1"
-              />
-            </label>
-            <ColorSelect value={color} onChange={setColor} />
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="rounded bg-emerald-700 px-4 py-2 hover:bg-emerald-600 disabled:opacity-50"
-            >
-              Opret spil
-            </button>
-          </form>
-          {createMutation.error && <ErrorText error={createMutation.error} />}
-        </section>
-
-        <section className="rounded bg-stone-800 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl">Tilgængelige spil</h2>
-            <button
-              type="button"
-              onClick={() => void games.refetch()}
-              className="rounded bg-stone-700 px-3 py-1 hover:bg-stone-600"
-            >
-              Opdater
-            </button>
-          </div>
-          {games.isLoading && <p className="text-stone-300">Henter spil...</p>}
-          {games.error && <ErrorText error={games.error} />}
-          {games.data?.filter((game) => game.state === 'Lobby').length === 0 && (
-            <p className="text-stone-300">Der er ingen åbne spil.</p>
+      <main className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:py-16">
+        <header className="text-center">
+          <p className="text-xs font-semibold tracking-[0.35em] text-amber-300/80 uppercase">
+            Verdensherredømme venter
+          </p>
+          <h1 className="mt-2 font-serif text-6xl font-bold tracking-[0.15em] text-amber-50 drop-shadow-[0_4px_24px_rgb(0_0_0/0.8)] sm:text-7xl">
+            RISK
+          </h1>
+          {user && (
+            <p className="mt-3 text-stone-300">
+              Velkommen, <span className="font-medium text-amber-100">{user.userName}</span>
+            </p>
           )}
-          <div className="flex flex-col gap-3">
-            {games.data
-              ?.filter((game) => game.state === 'Lobby')
-              .map((game) => (
-                <GameRow
-                  key={game.id}
-                  game={game}
-                  color={selectedColors[game.id] ?? colors[0]}
-                  onColorChange={(value) =>
-                    setSelectedColors((previous) => ({ ...previous, [game.id]: value }))
-                  }
-                  onJoin={() => handleJoin(game)}
-                  onStart={
-                    user?.id === game.hostId ? () => startMutation.mutate(game.id) : undefined
-                  }
-                  isJoining={joinMutation.isPending}
-                  isStarting={startMutation.isPending}
-                />
-              ))}
-          </div>
-          {joinMutation.error && <ErrorText error={joinMutation.error} />}
-          {startMutation.error && <ErrorText error={startMutation.error} />}
-        </section>
+        </header>
 
-        <section className="rounded bg-stone-800 p-5">
-          <h2 className="mb-3 text-xl">Igangværende spil</h2>
-          {games.data?.filter((game) => game.state === 'InProgress').length === 0 && (
-            <p className="text-stone-300">Der er ingen igangværende spil.</p>
-          )}
-          <div className="flex flex-col gap-3">
-            {games.data
-              ?.filter((game) => game.state === 'InProgress')
-              .map((game) => (
-                <div
-                  key={game.id}
-                  className="flex items-center justify-between rounded bg-stone-700 p-3"
-                >
-                  <p className="font-medium">
-                    Spil {game.id.slice(0, 8)} ({game.playerCount} spillere)
-                  </p>
-                  <Link
-                    to="/games/$gameId"
-                    params={{ gameId: game.id }}
-                    className="rounded bg-stone-600 px-3 py-1 hover:bg-stone-500"
-                  >
-                    Fortsæt
-                  </Link>
-                </div>
-              ))}
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+          <CreateGamePanel
+            onCreate={(input) => createMutation.mutate(input)}
+            isPending={createMutation.isPending}
+            error={createMutation.error}
+          />
+          <div className="flex flex-col gap-6">
+            <OpenGamesPanel
+              games={openGames}
+              isLoading={games.isLoading}
+              isRefreshing={games.isFetching && !games.isLoading}
+              loadError={games.error}
+              actionError={joinMutation.error ?? startMutation.error}
+              currentUserId={user?.id}
+              onRefresh={() => void games.refetch()}
+              onJoin={(game, color) => joinMutation.mutate({ gameId: game.id, color })}
+              onStart={(game) => startMutation.mutate(game.id)}
+              isJoining={joinMutation.isPending}
+              isStarting={startMutation.isPending}
+            />
+            {!games.isLoading && !games.error && <InProgressGamesPanel games={inProgressGames} />}
           </div>
-        </section>
-      </div>
-    </main>
-  )
-}
-
-function GameRow({
-  game,
-  color,
-  onColorChange,
-  onJoin,
-  onStart,
-  isJoining,
-  isStarting,
-}: {
-  game: GameSummaryDto
-  color: string
-  onColorChange: (value: string) => void
-  onJoin: () => void
-  onStart: (() => void) | undefined
-  isJoining: boolean
-  isStarting: boolean
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded bg-stone-700 p-3">
-      <div>
-        <p className="font-medium">Spil {game.id.slice(0, 8)}</p>
-        <p className="text-sm text-stone-300">
-          {game.playerCount}/{game.maxPlayers} spillere
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <ColorSelect value={color} onChange={onColorChange} />
-        <button
-          type="button"
-          onClick={onJoin}
-          disabled={isJoining || game.playerCount >= game.maxPlayers}
-          className="rounded bg-blue-700 px-3 py-1 hover:bg-blue-600 disabled:opacity-50"
-        >
-          Join
-        </button>
-        {onStart && (
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={isStarting}
-            className="rounded bg-amber-700 px-3 py-1 hover:bg-amber-600 disabled:opacity-50"
-          >
-            Start
-          </button>
-        )}
-        <Link
-          to="/games/$gameId"
-          params={{ gameId: game.id }}
-          className="rounded bg-stone-600 px-3 py-1 hover:bg-stone-500"
-        >
-          Åbn
-        </Link>
-      </div>
+        </div>
+      </main>
     </div>
   )
-}
-
-function ColorSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return (
-    <label className="flex items-center gap-2">
-      <span className="text-sm text-stone-300">Farve</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="rounded bg-stone-600 px-2 py-1"
-      >
-        {colors.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
-function ErrorText({ error }: { error: Error }) {
-  return <p className="mt-3 text-red-300">{error.message}</p>
 }
 
 export default App

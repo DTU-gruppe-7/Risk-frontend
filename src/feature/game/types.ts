@@ -92,6 +92,8 @@ export interface GameSettingsDto {
   cardBonusMode?: CardBonusMode
 }
 
+export type GameVictoryMode = 'CompleteConquest' | 'Mission'
+
 export interface CreateGameRequest {
   maxPlayers?: number
   timer?: number
@@ -99,6 +101,7 @@ export interface CreateGameRequest {
   hasFogOfWar?: boolean
   hasMissions?: boolean
   blizzardCount?: number
+  victoryMode?: GameVictoryMode
 }
 
 export interface JoinGameRequest {
