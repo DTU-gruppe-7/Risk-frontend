@@ -102,6 +102,8 @@ export interface CreateGameRequest {
   hasMissions?: boolean
   blizzardCount?: number
   victoryMode?: GameVictoryMode
+  /** How many troops a traded card set gives. The backend uses 'Fixed' when it is left out. */
+  cardBonusMode?: CardBonusMode
 }
 
 export interface JoinGameRequest {

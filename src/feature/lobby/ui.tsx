@@ -83,6 +83,44 @@ export function Segmented<T extends string | number>({
   )
 }
 
+/** Cards side by side where exactly one is chosen, each with a title and a short explanation. */
+export function ChoiceCards<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: readonly { value: T; title: string; description: string }[]
+  value: T
+  onChange: (value: T) => void
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="grid grid-cols-2 gap-2">
+      {options.map((option) => {
+        const selected = option.value === value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            className={`rounded-xl border p-3 text-left transition ${
+              selected
+                ? 'border-amber-300/60 bg-amber-300/15'
+                : 'border-white/10 bg-black/20 hover:border-white/20'
+            }`}
+          >
+            <span className="block font-serif text-stone-50">{option.title}</span>
+            <span className="block text-xs text-stone-400">{option.description}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function ColorPicker({
   value,
   onChange,

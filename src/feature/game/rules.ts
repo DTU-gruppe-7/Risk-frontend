@@ -228,6 +228,12 @@ export const TRADE_SETS: { types: BonusCardType[]; troops: number }[] = [
 ]
 
 /**
+ * The extra troops put on a territory the player holds when a card showing it is traded, at most
+ * once per trade. Like TRADE_SETS, keep it in step with the backend.
+ */
+export const OWNED_TERRITORY_BONUS = 2
+
+/**
  * The troops a set is expected to give, or null when that is not known: the set is not valid,
  * or it holds a wild card, where the backend picks what the wild card counts as.
  */

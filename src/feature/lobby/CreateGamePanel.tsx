@@ -1,6 +1,16 @@
 import { useState, type FormEvent } from 'react'
-import type { CreateGameRequest, GameVictoryMode } from '../game/types'
-import { ColorPicker, ErrorText, FieldLabel, Panel, PrimaryButton, Segmented, Toggle } from './ui'
+import { progressiveTradeValue, TRADE_SETS } from '../game/rules'
+import type { CardBonusMode, CreateGameRequest, GameVictoryMode } from '../game/types'
+import {
+  ChoiceCards,
+  ColorPicker,
+  ErrorText,
+  FieldLabel,
+  Panel,
+  PrimaryButton,
+  Segmented,
+  Toggle,
+} from './ui'
 import type { PlayerColor } from './playerColors'
 
 const PLAYER_COUNTS = [2, 3, 4, 5, 6].map((n) => ({ value: n, label: String(n) }))
@@ -8,6 +18,23 @@ const PLAYER_COUNTS = [2, 3, 4, 5, 6].map((n) => ({ value: n, label: String(n) }
 const VICTORY_MODES: { value: GameVictoryMode; title: string; description: string }[] = [
   { value: 'CompleteConquest', title: 'Total erobring', description: 'Erobr hele verden' },
   { value: 'Mission', title: 'Hemmelige missioner', description: 'Hver spiller får et mål' },
+]
+
+// Worked out from the trade values the cards panel shows, so the two always agree.
+const FIXED_TROOPS = TRADE_SETS.map((set) => set.troops)
+const FIRST_PROGRESSIVE_TROOPS = [0, 1, 2, 3].map(progressiveTradeValue)
+
+const CARD_BONUS_MODES: { value: CardBonusMode; title: string; description: string }[] = [
+  {
+    value: 'Fixed',
+    title: 'Faste værdier',
+    description: `Et sæt giver ${Math.min(...FIXED_TROOPS)}–${Math.max(...FIXED_TROOPS)} tropper efter kortene`,
+  },
+  {
+    value: 'Progressive',
+    title: 'Stigende bonus',
+    description: `Hvert sæt giver mere: ${FIRST_PROGRESSIVE_TROOPS.join(', ')}, …`,
+  },
 ]
 
 const TURN_TIMES = [
@@ -36,6 +63,7 @@ export default function CreateGamePanel({
   const [maxPlayers, setMaxPlayers] = useState(4)
   const [color, setColor] = useState<PlayerColor>('red')
   const [victoryMode, setVictoryMode] = useState<GameVictoryMode>('CompleteConquest')
+  const [cardBonusMode, setCardBonusMode] = useState<CardBonusMode>('Fixed')
   const [hasFogOfWar, setHasFogOfWar] = useState(false)
   const [blizzardCount, setBlizzardCount] = useState(0)
   const [turnTimeLimit, setTurnTimeLimit] = useState(0)
@@ -48,6 +76,7 @@ export default function CreateGamePanel({
         maxPlayers,
         victoryMode,
         hasMissions: victoryMode === 'Mission',
+        cardBonusMode,
         hasFogOfWar,
         blizzardCount,
         turnTimeLimit,
@@ -75,28 +104,22 @@ export default function CreateGamePanel({
 
         <div>
           <FieldLabel>Sejrsbetingelse</FieldLabel>
-          <div role="radiogroup" aria-label="Sejrsbetingelse" className="grid grid-cols-2 gap-2">
-            {VICTORY_MODES.map((mode) => {
-              const selected = mode.value === victoryMode
-              return (
-                <button
-                  key={mode.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setVictoryMode(mode.value)}
-                  className={`rounded-xl border p-3 text-left transition ${
-                    selected
-                      ? 'border-amber-300/60 bg-amber-300/15'
-                      : 'border-white/10 bg-black/20 hover:border-white/20'
-                  }`}
-                >
-                  <span className="block font-serif text-stone-50">{mode.title}</span>
-                  <span className="block text-xs text-stone-400">{mode.description}</span>
-                </button>
-              )
-            })}
-          </div>
+          <ChoiceCards
+            label="Sejrsbetingelse"
+            options={VICTORY_MODES}
+            value={victoryMode}
+            onChange={setVictoryMode}
+          />
+        </div>
+
+        <div>
+          <FieldLabel hint="Når kort byttes">Bonustropper</FieldLabel>
+          <ChoiceCards
+            label="Bonustropper"
+            options={CARD_BONUS_MODES}
+            value={cardBonusMode}
+            onChange={setCardBonusMode}
+          />
         </div>
 
         <div className="flex flex-col gap-2">

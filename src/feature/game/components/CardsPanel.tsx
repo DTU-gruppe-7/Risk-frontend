@@ -5,6 +5,7 @@ import {
   CARDS_PER_TRADE,
   FORCED_TRADE_HAND_SIZE,
   isValidCardSet,
+  OWNED_TERRITORY_BONUS,
   progressiveTradeValue,
   TRADE_SETS,
   tradeValueOf,
@@ -37,6 +38,9 @@ const MAX_CARDS_PER_ROW = 5
 /** The trades shown when the bonus is progressive: the next one in the game, and the two after it. */
 const UPCOMING_TRADES = ['Nu', 'Næste', 'Derefter']
 
+/** The extra troops for a card showing a territory the player holds, e.g. "2 ekstra tropper". */
+const OWNED_BONUS_TEXT = `${OWNED_TERRITORY_BONUS} ekstra tropper`
+
 /** What a set is called in the list of what each set gives. */
 function setName(types: BonusCardType[]) {
   const [first] = types
@@ -61,13 +65,13 @@ export default function CardsPanel(props: CardsPanelProps) {
         : null
   const canRedeem = canTrade && isValidSet
 
-  // Trading a card with a territory the player holds puts one extra troop on that territory.
+  // Trading a card with a territory the player holds puts extra troops on that territory.
   const ownedIds = new Set(
     territories.filter((territory) => territory.ownerId === playerId).map((t) => t.territoryId),
   )
   const givesBonus = (card: BonusCardDto) =>
     card.territoryIdentifier !== null && ownedIds.has(card.territoryIdentifier)
-  // Only one card per trade gives the extra troop: the first of the traded cards that can.
+  // Only one card per trade gives the extra troops: the first of the traded cards that can.
   const bonusCard = selected.find(givesBonus)
 
   function toggle(card: BonusCardDto) {
@@ -89,7 +93,7 @@ export default function CardsPanel(props: CardsPanelProps) {
       >
         {cards.map((card) => {
           const isSelected = selectedIds.includes(card.id)
-          // Another card in the set already gives the one extra troop of this trade.
+          // Another card in the set already gives the extra troops of this trade.
           const bonusIsUsed = isSelected && bonusCard !== undefined && bonusCard !== card
           return (
             <li key={card.id}>
@@ -113,8 +117,8 @@ export default function CardsPanel(props: CardsPanelProps) {
                     <span
                       title={
                         bonusIsUsed
-                          ? 'Kun ét kort pr. bytte giver en ekstra trop'
-                          : 'Du ejer territoriet og får 1 ekstra trop på det ved bytte'
+                          ? `Kun ét kort pr. bytte giver ${OWNED_BONUS_TEXT}`
+                          : `Du ejer territoriet og får ${OWNED_BONUS_TEXT} på det ved bytte`
                       }
                       className={`absolute top-2 right-2 rounded-full px-2 text-sm font-bold ${
                         bonusIsUsed
@@ -122,7 +126,7 @@ export default function CardsPanel(props: CardsPanelProps) {
                           : 'bg-emerald-600 text-white'
                       }`}
                     >
-                      +1
+                      +{OWNED_TERRITORY_BONUS}
                     </span>
                   )}
                 </BonusCardFace>
@@ -145,8 +149,9 @@ export default function CardsPanel(props: CardsPanelProps) {
       {isValidSet && !canTrade && <Hint>Du kan kun indløse i din egen forstærkningsfase.</Hint>}
       {bonusCard?.territoryIdentifier && (
         <Hint>
-          +1 trop på {names[bonusCard.territoryIdentifier] ?? bonusCard.territoryIdentifier}, fordi
-          du ejer territoriet.
+          {OWNED_BONUS_TEXT} på{' '}
+          {names[bonusCard.territoryIdentifier] ?? bonusCard.territoryIdentifier}, fordi du ejer
+          territoriet.
         </Hint>
       )}
       {trade.data && <Hint>Du fik {trade.data.troopsAwarded} tropper for dine kort.</Hint>}
@@ -199,7 +204,8 @@ export default function CardsPanel(props: CardsPanelProps) {
           Jokeren kan erstatte et hvilket som helst kort.
         </p>
         <p className="text-xs text-stone-400">
-          Ejer du territoriet på et af kortene, får du 1 ekstra trop på det. Højst én pr. bytte.
+          Ejer du territoriet på et af kortene, får du {OWNED_BONUS_TEXT} på det. Højst én gang pr.
+          bytte.
         </p>
       </div>
     </Panel>
