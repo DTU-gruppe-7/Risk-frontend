@@ -70,3 +70,6 @@ desktop.ini
 # Den er genereret, men skal versioneres, så repoet kan bygge uden at
 # backenden kører. Se README for hvordan den opdateres.
 # ----------------------------------------------------------------------------
+
+# Claude Code (lokal, ikke versioneret)
+CLAUDE.md
