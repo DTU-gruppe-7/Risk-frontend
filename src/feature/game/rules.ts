@@ -18,6 +18,11 @@ export function currentPlayerOf(game: GameDto): PlayerDto | undefined {
   return game.players.find((player) => player.id === game.currentPlayerId)
 }
 
+/** How many players have been knocked out of the game. */
+export function eliminatedCountOf(game: GameDto) {
+  return game.players.filter((player) => player.isEliminated).length
+}
+
 /**
  * Identifies one turn: changes when the turn does, also when the same player gets a new turn.
  * The start is compared as a point in time, not as text: the hub and the REST API may write the

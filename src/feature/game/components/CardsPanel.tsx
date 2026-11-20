@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import TerritoryShape from '../../map/TerritoryShape'
 import type { TerritoryNames, TerritoryState } from '../../map/types'
-import { handQuery } from '../queries'
 import {
   CARD_TYPE_NAMES,
   CARDS_PER_TRADE,
@@ -14,12 +11,15 @@ import {
 } from '../rules'
 import type { BonusCardDto, BonusCardType } from '../types'
 import { useTradeCards } from '../useGameActions'
+import BonusCardFace from './BonusCardFace'
 import CardIcon from './CardIcon'
 import { Button, ErrorText, Hint, Panel } from './ui'
 
 interface CardsPanelProps {
   gameId: string
   playerId: string
+  /** The cards the player holds (see useHand). */
+  cards: BonusCardDto[]
   /** Cards can only be traded in the player's own Deployment phase. */
   canTrade: boolean
   /**
@@ -45,8 +45,7 @@ function setName(types: BonusCardType[]) {
 
 /** The player's bonus cards, and trading three of them for extra troops. */
 export default function CardsPanel(props: CardsPanelProps) {
-  const { gameId, playerId, canTrade, setsTraded, territories, names } = props
-  const { data: cards = [] } = useQuery(handQuery(gameId, playerId))
+  const { gameId, playerId, cards, canTrade, setsTraded, territories, names } = props
   const trade = useTradeCards(gameId)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
@@ -79,9 +78,7 @@ export default function CardsPanel(props: CardsPanelProps) {
   return (
     <Panel title={`Kort (${cards.length})`}>
       {cards.length === 0 && (
-        <Hint>
-          Erobrer du et territorium i din tur, får du et kort, når du afslutter angrebsfasen.
-        </Hint>
+        <Hint>Erobrer du et territorium i din tur, får du et kort, når din tur er slut.</Hint>
       )}
       {/* Fixed card widths, so the panel is exactly as wide as the cards in it need. */}
       <ul
@@ -101,46 +98,34 @@ export default function CardsPanel(props: CardsPanelProps) {
                 aria-pressed={isSelected}
                 disabled={!isSelected && selected.length >= CARDS_PER_TRADE}
                 onClick={() => toggle(card)}
-                className={`relative flex aspect-[3/4] w-full flex-col items-center justify-end gap-1 rounded-lg border p-2 disabled:opacity-50 ${
-                  isSelected
-                    ? 'border-emerald-400 bg-emerald-900/60'
-                    : 'border-stone-600 bg-stone-700 hover:bg-stone-600'
-                }`}
+                className="block w-full rounded-lg disabled:opacity-50"
               >
-                {givesBonus(card) && (
-                  <span
-                    title={
-                      bonusIsUsed
-                        ? 'Kun ét kort pr. bytte giver en ekstra trop'
-                        : 'Du ejer territoriet og får 1 ekstra trop på det ved bytte'
-                    }
-                    className={`absolute top-2 right-2 rounded-full px-2 text-sm font-bold ${
-                      bonusIsUsed
-                        ? 'bg-stone-600 text-stone-400 line-through'
-                        : 'bg-emerald-600 text-white'
-                    }`}
-                  >
-                    +1
-                  </span>
-                )}
-                {card.territoryIdentifier ? (
-                  <>
-                    <CardIcon type={card.type} className="absolute top-2 left-2 h-7 w-7" />
-                    <TerritoryShape
-                      id={card.territoryIdentifier}
-                      className="min-h-0 w-full flex-1 px-2 pt-8 text-stone-300"
-                    />
-                  </>
-                ) : (
-                  <span className="grid min-h-0 flex-1 place-items-center">
-                    <CardIcon type={card.type} className="h-16 w-16" />
-                  </span>
-                )}
-                <span className="line-clamp-2 text-center text-sm leading-tight font-semibold text-stone-200">
-                  {card.territoryIdentifier
-                    ? (names[card.territoryIdentifier] ?? card.territoryIdentifier)
-                    : CARD_TYPE_NAMES[card.type]}
-                </span>
+                <BonusCardFace
+                  card={card}
+                  names={names}
+                  className={
+                    isSelected
+                      ? 'border-emerald-400 bg-emerald-900/60'
+                      : 'border-stone-600 bg-stone-700 hover:bg-stone-600'
+                  }
+                >
+                  {givesBonus(card) && (
+                    <span
+                      title={
+                        bonusIsUsed
+                          ? 'Kun ét kort pr. bytte giver en ekstra trop'
+                          : 'Du ejer territoriet og får 1 ekstra trop på det ved bytte'
+                      }
+                      className={`absolute top-2 right-2 rounded-full px-2 text-sm font-bold ${
+                        bonusIsUsed
+                          ? 'bg-stone-600 text-stone-400 line-through'
+                          : 'bg-emerald-600 text-white'
+                      }`}
+                    >
+                      +1
+                    </span>
+                  )}
+                </BonusCardFace>
               </button>
             </li>
           )

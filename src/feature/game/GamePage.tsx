@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Link, useParams, type ErrorComponentProps } from '@tanstack/react-router'
 import { useAuth } from '../../auth/useAuth'
 import { isApiError } from '../../api/errors'
@@ -11,12 +10,13 @@ import ActionPanel from './components/ActionPanel'
 import CardsPanel from './components/CardsPanel'
 import GameOver from './components/GameOver'
 import MissionPanel from './components/MissionPanel'
+import NewCardsBanner from './components/NewCardsBanner'
 import PlayerList from './components/PlayerList'
 import TurnBanner from './components/TurnBanner'
 import TurnStatus from './components/TurnStatus'
 import WaitingRoom from './components/WaitingRoom'
-import { handQuery } from './queries'
 import { useGame } from './useGame'
+import { useHand } from './useHand'
 import { useOpponentSelection, useShareSelection } from './useLiveSelection'
 import { useTurn } from './useTurn'
 
@@ -59,6 +59,7 @@ export default function GamePage() {
   const turn = useTurn(game, me, board.territories, territoryInfos)
   useShareSelection(gameId, turn, connectionStatus)
   const opponentSelection = useOpponentSelection(game, me, board.territories)
+  const hand = useHand(game, me?.id)
   const names = territoryNames.da
   // The side panels are closed until asked for, so the map gets the whole screen.
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null)
@@ -98,7 +99,7 @@ export default function GamePage() {
         <nav className="flex shrink-0 gap-2">
           {panelButton('players', `Spillere (${game.players.length})`)}
           {hasMission && panelButton('mission', 'Mission')}
-          {me && hasCards && panelButton('cards', <CardsLabel gameId={gameId} playerId={me.id} />)}
+          {me && hasCards && panelButton('cards', `Kort (${hand.cards.length})`)}
         </nav>
       </header>
 
@@ -128,13 +129,26 @@ export default function GamePage() {
                   gameId={gameId}
                   me={me}
                   turn={turn}
+                  cardCount={hand.cards.length}
                   names={names}
                 />
               </div>
             </div>
           )}
 
-          <TurnBanner game={game} me={me} scale={scale} />
+          {/* Announcements in the middle of the map. */}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
+            {me && isPlaying && (
+              <NewCardsBanner
+                cards={hand.newCards}
+                names={names}
+                scale={scale}
+                onDone={hand.dismissNewCards}
+              />
+            )}
+            {/* The new cards first, so they can be seen before the next player's turn is shown. */}
+            <TurnBanner game={game} me={me} scale={scale} waiting={hand.isAnnouncing} />
+          </div>
         </div>
 
         {game.state !== 'InProgress' && (
@@ -173,6 +187,7 @@ export default function GamePage() {
                   key={`cards:${turn.id}`}
                   gameId={gameId}
                   playerId={me.id}
+                  cards={hand.cards}
                   canTrade={turn.mode === 'deploy'}
                   setsTraded={
                     game.settings?.cardBonusMode === 'Progressive'
@@ -189,12 +204,6 @@ export default function GamePage() {
       </div>
     </main>
   )
-}
-
-/** The label of the cards button, with how many cards the player holds. */
-function CardsLabel({ gameId, playerId }: { gameId: string; playerId: string }) {
-  const { data: cards = [] } = useQuery(handQuery(gameId, playerId))
-  return <>Kort ({cards.length})</>
 }
 
 export function GameErrorPage({ error }: ErrorComponentProps) {

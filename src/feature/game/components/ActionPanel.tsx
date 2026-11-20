@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
 import type { TerritoryNames } from '../../map/types'
-import { handQuery } from '../queries'
 import { FORCED_TRADE_HAND_SIZE } from '../rules'
 import type { PlayerDto } from '../types'
 import { useGameActions } from '../useGameActions'
@@ -15,13 +13,14 @@ interface ActionPanelProps {
   gameId: string
   me: PlayerDto
   turn: Turn
+  /** The bonus cards the player holds (see useHand). */
+  cardCount: number
   names: TerritoryNames
 }
 
 /** The controls for what the player can do right now. Shows nothing while they wait. */
-export default function ActionPanel({ gameId, me, turn, names }: ActionPanelProps) {
+export default function ActionPanel({ gameId, me, turn, cardCount, names }: ActionPanelProps) {
   const actions = useGameActions(gameId)
-  const hand = useQuery(handQuery(gameId, me.id))
   const { mode, source, target } = turn
 
   switch (mode) {
@@ -34,7 +33,7 @@ export default function ActionPanel({ gameId, me, turn, names }: ActionPanelProp
           key={source?.stateId}
           available={me.reinforcementTroops}
           territory={source}
-          mustTrade={(hand.data?.length ?? 0) >= FORCED_TRADE_HAND_SIZE}
+          mustTrade={cardCount >= FORCED_TRADE_HAND_SIZE}
           names={names}
           deploy={actions.deploy}
           endPhase={actions.endPhase}
