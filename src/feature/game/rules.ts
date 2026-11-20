@@ -65,6 +65,42 @@ export interface Interaction {
 
 const NO_INTERACTION: Interaction = { sources: [], targetsOf: () => [], autoSelect: false }
 
+/** Looks up territories on the board as the player sees it. */
+function boardOf(territories: TerritoryState[], infos: TerritoryInfo[]) {
+  const stateById = new Map(territories.map((territory) => [territory.territoryId, territory]))
+  const adjacentById = new Map(infos.map((info) => [info.id, info.adjacent]))
+
+  // A territory without state is hidden by fog of war, and a blizzard is never part of play.
+  const isPlayable = (id: TerritoryId) => stateById.get(id)?.blizzard === false
+  const ownerOf = (id: TerritoryId) =>
+    isPlayable(id) ? (stateById.get(id)?.ownerId ?? null) : null
+  const neighborsOf = (id: TerritoryId) => (adjacentById.get(id) ?? []).filter(isPlayable)
+
+  return { stateById, isPlayable, ownerOf, neighborsOf }
+}
+
+/**
+ * Searches outwards from sourceId, nearest first, through the territories canEnter lets in. Gives
+ * every territory reached, with the one it was reached from (null for sourceId itself).
+ */
+function searchFrom(
+  sourceId: TerritoryId,
+  neighborsOf: (id: TerritoryId) => TerritoryId[],
+  canEnter: (id: TerritoryId) => boolean,
+) {
+  const cameFrom = new Map<TerritoryId, TerritoryId | null>([[sourceId, null]])
+  const queue = [sourceId]
+  for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+    for (const neighbor of neighborsOf(id)) {
+      if (canEnter(neighbor) && !cameFrom.has(neighbor)) {
+        cameFrom.set(neighbor, id)
+        queue.push(neighbor)
+      }
+    }
+  }
+  return cameFrom
+}
+
 export function interactionFor(
   mode: TurnMode,
   territories: TerritoryState[],
@@ -73,15 +109,10 @@ export function interactionFor(
 ): Interaction {
   if (mode === 'waiting' || !playerId) return NO_INTERACTION
 
-  const stateById = new Map(territories.map((territory) => [territory.territoryId, territory]))
-  const adjacentById = new Map(infos.map((info) => [info.id, info.adjacent]))
-
-  // A territory without state is hidden by fog of war, and a blizzard is never part of play.
-  const isPlayable = (id: TerritoryId) => stateById.get(id)?.blizzard === false
-  const isMine = (id: TerritoryId) => isPlayable(id) && stateById.get(id)?.ownerId === playerId
+  const { stateById, ownerOf, neighborsOf } = boardOf(territories, infos)
+  const isMine = (id: TerritoryId) => ownerOf(id) === playerId
   // One troop always stays behind, so moving out takes at least two.
   const canMoveFrom = (id: TerritoryId) => isMine(id) && (stateById.get(id)?.units ?? 0) >= 2
-  const neighborsOf = (id: TerritoryId) => (adjacentById.get(id) ?? []).filter(isPlayable)
   const mine = territories.map((territory) => territory.territoryId).filter(isMine)
 
   function withTargets(targetsOf: Interaction['targetsOf'], autoSelect = false): Interaction {
@@ -91,18 +122,8 @@ export function interactionFor(
 
   /** Every territory connected to sourceId through the player's own territories. */
   function reachableFrom(sourceId: TerritoryId) {
-    const reached = new Set([sourceId])
-    const queue = [sourceId]
-    for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
-      for (const neighbor of neighborsOf(id)) {
-        if (isMine(neighbor) && !reached.has(neighbor)) {
-          reached.add(neighbor)
-          queue.push(neighbor)
-        }
-      }
-    }
-    reached.delete(sourceId)
-    return [...reached]
+    const reached = searchFrom(sourceId, neighborsOf, isMine).keys()
+    return [...reached].filter((id) => id !== sourceId)
   }
 
   switch (mode) {
@@ -122,6 +143,35 @@ export function interactionFor(
     case 'fortify':
       return withTargets(reachableFrom)
   }
+}
+
+/**
+ * The territories troops pass from sourceId to targetId, both included. When fortifying, the
+ * shortest way through territories with the same owner as sourceId; otherwise, or when that way
+ * cannot be seen (fog of war), straight from one to the other. Null without both.
+ */
+export function troopRouteOf(
+  sourceId: TerritoryId | null | undefined,
+  targetId: TerritoryId | null | undefined,
+  isFortifying: boolean,
+  territories: TerritoryState[],
+  infos: TerritoryInfo[],
+): TerritoryId[] | null {
+  if (!sourceId || !targetId) return null
+  const straight = [sourceId, targetId]
+  if (!isFortifying) return straight
+
+  const { ownerOf, neighborsOf } = boardOf(territories, infos)
+  const owner = ownerOf(sourceId)
+  if (!owner) return straight
+  const cameFrom = searchFrom(sourceId, neighborsOf, (id) => ownerOf(id) === owner)
+  if (!cameFrom.has(targetId)) return straight
+
+  const route: TerritoryId[] = []
+  for (let id: TerritoryId | null = targetId; id !== null; id = cameFrom.get(id) ?? null) {
+    route.unshift(id)
+  }
+  return route
 }
 
 export interface Selection {

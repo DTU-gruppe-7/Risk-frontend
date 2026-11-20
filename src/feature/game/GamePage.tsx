@@ -6,6 +6,7 @@ import Board from '../map/Board'
 import { MAP_HEIGHT, MAP_WIDTH } from '../map/geometry'
 import { useContinents, useTerritoryInfos } from '../map/queries'
 import { territoryNames } from '../map/names'
+import type { TerritoryId } from '../map/types'
 import ActionPanel from './components/ActionPanel'
 import CardsPanel from './components/CardsPanel'
 import GameOver from './components/GameOver'
@@ -16,6 +17,7 @@ import TurnBanner from './components/TurnBanner'
 import TurnStatus from './components/TurnStatus'
 import WaitingRoom from './components/WaitingRoom'
 import { useGame } from './useGame'
+import { troopRouteOf } from './rules'
 import { useHand } from './useHand'
 import { useOpponentSelection, useShareSelection } from './useLiveSelection'
 import { useTurn } from './useTurn'
@@ -60,6 +62,20 @@ export default function GamePage() {
   useShareSelection(gameId, turn, connectionStatus)
   const opponentSelection = useOpponentSelection(game, me, board.territories)
   const hand = useHand(game, me?.id)
+  // The arrows follow the way troops go: through the player's own territories when fortifying.
+  const routeOf = (
+    sourceId: TerritoryId | null | undefined,
+    targetId: TerritoryId | null | undefined,
+    isFortifying: boolean,
+  ) => troopRouteOf(sourceId, targetId, isFortifying, board.territories, territoryInfos)
+  const arrowRoutes = [
+    routeOf(turn.source?.territoryId, turn.target?.territoryId, turn.mode === 'fortify'),
+    routeOf(
+      opponentSelection?.sourceId,
+      opponentSelection?.targetId,
+      game.currentPhase === 'Fortify',
+    ),
+  ].filter((route) => route !== null)
   const names = territoryNames.da
   // The side panels are closed until asked for, so the map gets the whole screen.
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null)
@@ -116,6 +132,7 @@ export default function GamePage() {
             highlightedIds={turn.targetIds}
             targetId={turn.target?.territoryId}
             remoteSelection={opponentSelection}
+            arrowRoutes={arrowRoutes}
             onTerritoryClick={turn.select}
           />
 

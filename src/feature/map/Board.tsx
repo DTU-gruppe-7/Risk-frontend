@@ -55,6 +55,8 @@ interface BoardProps {
   targetId?: TerritoryId | null
   /** What another player has picked, e.g. the opponent whose turn it is. */
   remoteSelection?: RemoteSelection | null
+  /** Routes to draw an arrow along, each from its first territory to its last. */
+  arrowRoutes?: TerritoryId[][]
   onTerritoryClick: (id: TerritoryId) => void
 }
 
@@ -81,6 +83,7 @@ function Board({
   highlightedIds = [],
   targetId = null,
   remoteSelection = null,
+  arrowRoutes = [],
   onTerritoryClick,
 }: BoardProps) {
   const stateById = new Map(territories.map((t) => [t.territoryId, t]))
@@ -104,6 +107,10 @@ function Board({
   const remoteSource = playableGeometryOf(remoteSelection?.sourceId)
   const remoteTarget = playableGeometryOf(remoteSelection?.targetId)
   const pickedIds = [selectedId, targetId, remoteSource?.id, remoteTarget?.id]
+  // An arrow is only drawn when every territory on its way can be seen.
+  const arrows = arrowRoutes
+    .map((route) => route.map(playableGeometryOf))
+    .filter((route): route is TerritoryGeometry[] => route.every((t) => t !== undefined))
 
   /**
    * The colour of the player who holds every territory of a continent, or null when nobody does.
@@ -280,15 +287,11 @@ function Board({
           )}
       </g>
 
-      {/* Layer 6: an arrow from what was picked to its target, both our own and another player's.
-          Drawn below the labels, so the troops stay readable. */}
-      {[
-        [selected, target],
-        [remoteSource, remoteTarget],
-      ].map(
-        ([from, to]) =>
-          from && to && <TerritoryArrow key={`${from.id}:${to.id}`} from={from} to={to} />,
-      )}
+      {/* Layer 6: arrows, e.g. from what was picked to its target. Drawn below the labels, so the
+          troops stay readable. */}
+      {arrows.map((route) => (
+        <TerritoryArrow key={route.map((t) => t.id).join('>')} route={route} />
+      ))}
 
       {/* Layer 7: what each continent gives per turn, in the colour of the player who holds it */}
       <g pointerEvents="none" fontFamily="Georgia, serif" fontWeight="bold" fontSize={11}>

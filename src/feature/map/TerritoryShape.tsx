@@ -1,13 +1,14 @@
 import { territoryGeometries } from './geometry'
+import { pointsOf } from './paths'
 import type { TerritoryId } from './types'
 
 const PADDING = 2
 
-/** The box around a path. The paths only use absolute M, L, C and Z, so every number pair is a point. */
+/** The box around a path. */
 function viewBoxOf(path: string) {
-  const numbers = (path.match(/-?\d+(\.\d+)?/g) ?? []).map(Number)
-  const xs = numbers.filter((_, index) => index % 2 === 0)
-  const ys = numbers.filter((_, index) => index % 2 === 1)
+  const points = pointsOf(path)
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
   const left = Math.min(...xs) - PADDING
   const top = Math.min(...ys) - PADDING
   const width = Math.max(...xs) + PADDING - left
