@@ -213,7 +213,7 @@ export const CARD_TYPE_NAMES: Record<BonusCardType, string> = {
   Infantry: 'Infanteri',
   Cavalry: 'Kavaleri',
   Artillery: 'Artilleri',
-  Wild: 'Joker',
+  Wild: 'Wild card',
 }
 
 /**

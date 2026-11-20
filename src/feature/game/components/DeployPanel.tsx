@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TerritoryNames, TerritoryState } from '../../map/types'
+import { troopWord } from '../troopWord'
 import type { GameActions } from '../useGameActions'
 import { ActionBox, Button, ErrorText, Hint } from './ui'
 
@@ -87,7 +88,7 @@ export default function DeployPanel(props: DeployPanelProps) {
               disabled={deploy.isPending}
               onClick={() => deploy.mutate({ territory, troops })}
             >
-              Placér {troops} {troops === 1 ? 'troppe' : 'tropper'}
+              Placér {troops} {troopWord(troops)}
             </Button>
           </>
         )

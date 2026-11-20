@@ -45,7 +45,7 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
               disabled={isPending}
               onClick={() => battle.mutate({ from, to })}
             >
-              Blitz
+              Lynangreb
             </Button>
           </div>
         </>

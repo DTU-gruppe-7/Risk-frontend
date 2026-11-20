@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { playerName } from '../playerName'
 import { currentPlayerOf, turnIdOf } from '../rules'
+import { troopWord } from '../troopWord'
 import type { GameDto, PlayerDto } from '../types'
 import Announcement from './Announcement'
 
@@ -63,9 +64,7 @@ export default function TurnBanner({ game, me, scale, waiting = false }: TurnBan
       {troops > 0 && (
         <p className="text-5xl font-bold tabular-nums">
           +{troops}{' '}
-          <span className="text-2xl font-semibold text-stone-300">
-            {troops === 1 ? 'troppe' : 'tropper'}
-          </span>
+          <span className="text-2xl font-semibold text-stone-300">{troopWord(troops)}</span>
         </p>
       )}
     </Announcement>
