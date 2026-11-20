@@ -43,7 +43,10 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          // App-skallen caches ved installation. Vites filer har hash i navnet, så de serveres fra cachen.
+          // Ny service worker tager over med det samme i stedet for at vente på, at alle faner lukkes.
+          // Sættes ikke af sig selv, fordi injectRegister er false. main.tsx genindlæser så siden.
+          skipWaiting: true,
+          clientsClaim: true,
           globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
           cleanupOutdatedCaches: true,
           // Navigation i SPA'en (fx /game/123) får index.html fra cachen, også offline.
