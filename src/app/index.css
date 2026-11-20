@@ -26,6 +26,15 @@
     }
   }
 
+  /* Dashes running along an arrow on the map. The offset is one dash and gap (3 + 5). */
+  --animate-arrow-flow: arrow-flow 0.6s linear infinite;
+
+  @keyframes arrow-flow {
+    to {
+      stroke-dashoffset: -8;
+    }
+  }
+
   @keyframes turn-banner-fade {
     0%,
     100% {

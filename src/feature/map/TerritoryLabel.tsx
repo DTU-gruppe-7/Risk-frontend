@@ -1,3 +1,5 @@
+import { BADGE_OFFSET_Y, BADGE_RADIUS } from './badge'
+import { INK, PAPER } from './colors'
 import type { Point } from './types'
 
 interface TerritoryLabelProps {
@@ -6,9 +8,6 @@ interface TerritoryLabelProps {
   units: number | null
   ownerColor: string | null
 }
-
-const INK = '#4a3522'
-const PAPER = '#f3e7c9'
 
 function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelProps) {
   return (
@@ -30,9 +29,15 @@ function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelPro
       {/* No troop badge when there are no troops to show (e.g. a blizzard) */}
       {units !== null && (
         <>
-          <circle cy={5} r={6} fill={ownerColor ?? PAPER} stroke={INK} strokeWidth={0.8} />
+          <circle
+            cy={BADGE_OFFSET_Y}
+            r={BADGE_RADIUS}
+            fill={ownerColor ?? PAPER}
+            stroke={INK}
+            strokeWidth={0.8}
+          />
           <text
-            y={5}
+            y={BADGE_OFFSET_Y}
             textAnchor="middle"
             dominantBaseline="central"
             fontFamily="Georgia, serif"

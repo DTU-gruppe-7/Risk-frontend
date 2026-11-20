@@ -1,5 +1,6 @@
 import mapBackground from '../../assets/map/map-background.svg'
 import { MAP_HEIGHT, MAP_WIDTH, MAP_VIEWBOX, territoryGeometries } from './geometry'
+import TerritoryArrow from './TerritoryArrow'
 import TerritoryLabel from './TerritoryLabel'
 import { seaRoutes } from './seaRoutes'
 import type {
@@ -14,10 +15,14 @@ import type {
   TerritoryInfo,
   Player,
 } from './types'
-import { BLIZZARD_COLOR, CONTINENT_COLORS, FOG_COLOR, NEUTRAL_BORDER_COLOR } from './colors'
-
-const INK = '#4a3522'
-const PAPER = '#f3e7c9'
+import {
+  BLIZZARD_COLOR,
+  CONTINENT_COLORS,
+  FOG_COLOR,
+  INK,
+  NEUTRAL_BORDER_COLOR,
+  PAPER,
+} from './colors'
 
 /** Where each continent's bonus is written: a spot in the sea right next to the continent. */
 const BONUS_POSITIONS: Record<ContinentId, Point> = {
@@ -30,9 +35,12 @@ const BONUS_POSITIONS: Record<ContinentId, Point> = {
 }
 
 /** How far outside a continent its border reaches, in map units. */
-const CONTINENT_BORDER_WIDTH = 1.8
+const CONTINENT_BORDER_WIDTH = 1.2
 /** The width of the black line on each side of a player's border. */
-const CONTINENT_BORDER_EDGE = 0.6
+const CONTINENT_BORDER_EDGE = 0.4
+/** How strongly the borders are drawn: clear, but toned down so they do not take the attention. */
+const HELD_CONTINENT_BORDER_OPACITY = 0.85
+const NEUTRAL_CONTINENT_BORDER_OPACITY = 0.65
 
 interface BoardProps {
   territories: TerritoryState[]
@@ -84,21 +92,18 @@ function Board({
   const isVisible = (id: TerritoryId) => stateById.get(id)?.visible ?? false
   const isPlayable = (id: TerritoryId) => isVisible(id) && !isBlizzard(id)
 
-  const selected =
-    selectedId && isPlayable(selectedId)
-      ? territoryGeometries.find((t) => t.id === selectedId)
-      : undefined
+  /** The shape of a territory that can be picked, or undefined when there is none. */
+  const playableGeometryOf = (id: TerritoryId | null | undefined) =>
+    id && isPlayable(id) ? territoryGeometries.find((t) => t.id === id) : undefined
+
+  const selected = playableGeometryOf(selectedId)
   const highlighted = territoryGeometries.filter(
     (t) => highlightedIds.includes(t.id) && isPlayable(t.id),
   )
   const target = highlighted.find((t) => t.id === targetId)
-  const remotePicks = territoryGeometries.filter(
-    (t) =>
-      remoteSelection &&
-      (t.id === remoteSelection.sourceId || t.id === remoteSelection.targetId) &&
-      isPlayable(t.id),
-  )
-  const pickedIds = [selectedId, targetId, ...remotePicks.map((t) => t.id)]
+  const remoteSource = playableGeometryOf(remoteSelection?.sourceId)
+  const remoteTarget = playableGeometryOf(remoteSelection?.targetId)
+  const pickedIds = [selectedId, targetId, remoteSource?.id, remoteTarget?.id]
 
   /**
    * The colour of the player who holds every territory of a continent, or null when nobody does.
@@ -136,7 +141,7 @@ function Board({
       {/* Layer 2: sea routes (a route into a blizzard leads nowhere, so it is hidden) */}
       <g
         fill="none"
-        stroke="#4a3522"
+        stroke={INK}
         strokeOpacity={0.75}
         strokeWidth={1.1}
         strokeDasharray="3 2.5"
@@ -163,7 +168,7 @@ function Board({
               d={territory.path}
               fill={fillFor(territory.id)}
               fillOpacity={isSelected ? 1.0 : 0.75}
-              stroke="#4a3522"
+              stroke={INK}
               strokeWidth={0.7}
               strokeLinejoin="round"
               style={{ mixBlendMode: 'multiply' }}
@@ -236,7 +241,7 @@ function Board({
               filter={`url(#continent-border-${continent.id})`}
               stroke="black"
               strokeWidth={0.7}
-              opacity={color ? 1 : 0.9}
+              opacity={color ? HELD_CONTINENT_BORDER_OPACITY : NEUTRAL_CONTINENT_BORDER_OPACITY}
             >
               {territoryGeometries
                 .filter((t) => infoById.get(t.id)?.continent === continent.id)
@@ -263,12 +268,29 @@ function Board({
           (t) => t && <SelectionOutline key={t.id} territory={t} color={SELECTION_COLOR} />,
         )}
         {remoteSelection &&
-          remotePicks.map((t) => (
-            <SelectionOutline key={`remote:${t.id}`} territory={t} color={remoteSelection.color} />
-          ))}
+          [remoteSource, remoteTarget].map(
+            (t) =>
+              t && (
+                <SelectionOutline
+                  key={`remote:${t.id}`}
+                  territory={t}
+                  color={remoteSelection.color}
+                />
+              ),
+          )}
       </g>
 
-      {/* Layer 6: what each continent gives per turn, in the colour of the player who holds it */}
+      {/* Layer 6: an arrow from what was picked to its target, both our own and another player's.
+          Drawn below the labels, so the troops stay readable. */}
+      {[
+        [selected, target],
+        [remoteSource, remoteTarget],
+      ].map(
+        ([from, to]) =>
+          from && to && <TerritoryArrow key={`${from.id}:${to.id}`} from={from} to={to} />,
+      )}
+
+      {/* Layer 7: what each continent gives per turn, in the colour of the player who holds it */}
       <g pointerEvents="none" fontFamily="Georgia, serif" fontWeight="bold" fontSize={11}>
         {continentOwners.map(({ continent, color }) => {
           const position = BONUS_POSITIONS[continent.id]
@@ -299,7 +321,7 @@ function Board({
         })}
       </g>
 
-      {/* Layer 7: names and troops (blizzards get a name but no troops) */}
+      {/* Layer 8: names and troops (blizzards get a name but no troops) */}
       <g pointerEvents="none">
         {territoryGeometries.map((territory) => {
           const state = stateById.get(territory.id)
