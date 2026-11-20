@@ -207,7 +207,7 @@ export default function GamePage() {
                   cards={hand.cards}
                   canTrade={turn.mode === 'deploy'}
                   setsTraded={
-                    game.settings?.cardBonusMode === 'Progressive'
+                    game.settings?.cardTradeMode === 'Progressive'
                       ? (game.cardSetsTraded ?? 0)
                       : null
                   }

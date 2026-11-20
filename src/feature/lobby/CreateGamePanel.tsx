@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { progressiveTradeValue, TRADE_SETS } from '../game/rules'
-import type { CardBonusMode, CreateGameRequest, GameVictoryMode } from '../game/types'
+import type { CardTradeMode, CreateGameRequest, GameVictoryMode } from '../game/types'
 import {
   ChoiceCards,
   ColorPicker,
@@ -24,7 +24,7 @@ const VICTORY_MODES: { value: GameVictoryMode; title: string; description: strin
 const FIXED_TROOPS = TRADE_SETS.map((set) => set.troops)
 const FIRST_PROGRESSIVE_TROOPS = [0, 1, 2, 3].map(progressiveTradeValue)
 
-const CARD_BONUS_MODES: { value: CardBonusMode; title: string; description: string }[] = [
+const CARD_TRADE_MODES: { value: CardTradeMode; title: string; description: string }[] = [
   {
     value: 'Fixed',
     title: 'Faste værdier',
@@ -63,7 +63,7 @@ export default function CreateGamePanel({
   const [maxPlayers, setMaxPlayers] = useState(4)
   const [color, setColor] = useState<PlayerColor>('red')
   const [victoryMode, setVictoryMode] = useState<GameVictoryMode>('CompleteConquest')
-  const [cardBonusMode, setCardBonusMode] = useState<CardBonusMode>('Fixed')
+  const [cardTradeMode, setCardTradeMode] = useState<CardTradeMode>('Fixed')
   const [hasFogOfWar, setHasFogOfWar] = useState(false)
   const [blizzardCount, setBlizzardCount] = useState(0)
   const [turnTimeLimit, setTurnTimeLimit] = useState(0)
@@ -76,7 +76,7 @@ export default function CreateGamePanel({
         maxPlayers,
         victoryMode,
         hasMissions: victoryMode === 'Mission',
-        cardBonusMode,
+        cardTradeMode,
         hasFogOfWar,
         blizzardCount,
         turnTimeLimit,
@@ -116,9 +116,9 @@ export default function CreateGamePanel({
           <FieldLabel hint="Når kort byttes">Bonustropper</FieldLabel>
           <ChoiceCards
             label="Bonustropper"
-            options={CARD_BONUS_MODES}
-            value={cardBonusMode}
-            onChange={setCardBonusMode}
+            options={CARD_TRADE_MODES}
+            value={cardTradeMode}
+            onChange={setCardTradeMode}
           />
         </div>
 
@@ -126,7 +126,7 @@ export default function CreateGamePanel({
           <FieldLabel>Regler</FieldLabel>
           <Toggle
             title="Fog of war"
-            description="Du ser kun lande op til dine egne"
+            description="Du ser kun territorier op til dine egne"
             checked={hasFogOfWar}
             onChange={setHasFogOfWar}
           />
@@ -135,7 +135,7 @@ export default function CreateGamePanel({
               <span>
                 <span className="block text-sm font-medium text-stone-100">Snestorme</span>
                 <span className="block text-xs text-stone-400">
-                  Lande der er ufremkommelige hele spillet
+                  Territorier der er ufremkommelige hele spillet
                 </span>
               </span>
               <span className="font-serif text-xl text-amber-200 tabular-nums">

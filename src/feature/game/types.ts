@@ -77,7 +77,7 @@ export interface GameSummaryDto {
 }
 
 /** 'Fixed': a set's value depends on its cards. 'Progressive': each set traded gives more than the last. */
-export type CardBonusMode = 'Fixed' | 'Progressive'
+export type CardTradeMode = 'Fixed' | 'Progressive'
 
 export interface GameSettingsDto {
   id: string
@@ -88,8 +88,8 @@ export interface GameSettingsDto {
   hasFogOfWar: boolean
   hasMissions: boolean
   blizzardCount: number
-  /** Not sent by the backend yet; the bonus is fixed until it is. */
-  cardBonusMode?: CardBonusMode
+  /** How many troops a traded card set gives. */
+  cardTradeMode: CardTradeMode
 }
 
 export type GameVictoryMode = 'CompleteConquest' | 'Mission'
@@ -102,8 +102,8 @@ export interface CreateGameRequest {
   hasMissions?: boolean
   blizzardCount?: number
   victoryMode?: GameVictoryMode
-  /** How many troops a traded card set gives. The backend uses 'Fixed' when it is left out. */
-  cardBonusMode?: CardBonusMode
+  /** How many troops a traded card set gives. Always sent, as the backend has its own default. */
+  cardTradeMode?: CardTradeMode
 }
 
 export interface JoinGameRequest {
