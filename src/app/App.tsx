@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import { createGame, joinGame, startGame } from '../feature/game/mutations'
 import { gamesQuery, territoriesQuery } from '../feature/game/queries'
 import CreateGamePanel, { type CreateGameInput } from '../feature/lobby/CreateGamePanel'
+import InProgressGamesPanel from '../feature/lobby/InProgressGamesPanel'
 import MapBackdrop from '../feature/lobby/MapBackdrop'
 import OpenGamesPanel from '../feature/lobby/OpenGamesPanel'
 
@@ -16,6 +17,7 @@ function App() {
   const games = useQuery(gamesQuery())
 
   const openGames = games.data?.filter((game) => game.state === 'Lobby') ?? []
+  const inProgressGames = games.data?.filter((game) => game.state === 'InProgress') ?? []
 
   const joinMutation = useMutation({
     mutationFn: ({ gameId, color }: { gameId: string; color: string }) =>
@@ -66,61 +68,6 @@ function App() {
             </p>
           )}
         </header>
-          <div className="flex flex-col gap-3">
-            {games.data
-              ?.filter((game) => game.state === 'Lobby')
-              .map((game) => (
-                <GameRow
-                  key={game.id}
-                  game={game}
-                  color={selectedColors[game.id] ?? colors[0]}
-                  onColorChange={(value) =>
-                    setSelectedColors((previous) => ({ ...previous, [game.id]: value }))
-                  }
-                  onJoin={() => handleJoin(game)}
-                  onStart={
-                    user?.id === game.hostId ? () => startMutation.mutate(game.id) : undefined
-                  }
-                  isJoining={joinMutation.isPending}
-                  isStarting={startMutation.isPending}
-                />
-              ))}
-          </div>
-          {joinMutation.error && <ErrorText error={joinMutation.error} />}
-          {startMutation.error && <ErrorText error={startMutation.error} />}
-        </section>
-
-        <section className="rounded bg-stone-800 p-5">
-          <h2 className="mb-3 text-xl">Igangværende spil</h2>
-          {games.data?.filter((game) => game.state === 'InProgress').length === 0 && (
-            <p className="text-stone-300">Der er ingen igangværende spil.</p>
-          )}
-          <div className="flex flex-col gap-3">
-            {games.data
-              ?.filter((game) => game.state === 'InProgress')
-              .map((game) => (
-                <div
-                  key={game.id}
-                  className="flex items-center justify-between rounded bg-stone-700 p-3"
-                >
-                  <p className="font-medium">
-                    Spil {game.id.slice(0, 8)} ({game.playerCount} spillere)
-                  </p>
-                  <Link
-                    to="/games/$gameId"
-                    params={{ gameId: game.id }}
-                    className="rounded bg-stone-600 px-3 py-1 hover:bg-stone-500"
-                  >
-                    Fortsæt
-                  </Link>
-                </div>
-              ))}
-          </div>
-        </section>
-      </div>
-    </main>
-  )
-}
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
           <CreateGamePanel
@@ -128,19 +75,22 @@ function App() {
             isPending={createMutation.isPending}
             error={createMutation.error}
           />
-          <OpenGamesPanel
-            games={openGames}
-            isLoading={games.isLoading}
-            isRefreshing={games.isFetching && !games.isLoading}
-            loadError={games.error}
-            actionError={joinMutation.error ?? startMutation.error}
-            currentUserId={user?.id}
-            onRefresh={() => void games.refetch()}
-            onJoin={(game, color) => joinMutation.mutate({ gameId: game.id, color })}
-            onStart={(game) => startMutation.mutate(game.id)}
-            isJoining={joinMutation.isPending}
-            isStarting={startMutation.isPending}
-          />
+          <div className="flex flex-col gap-6">
+            <OpenGamesPanel
+              games={openGames}
+              isLoading={games.isLoading}
+              isRefreshing={games.isFetching && !games.isLoading}
+              loadError={games.error}
+              actionError={joinMutation.error ?? startMutation.error}
+              currentUserId={user?.id}
+              onRefresh={() => void games.refetch()}
+              onJoin={(game, color) => joinMutation.mutate({ gameId: game.id, color })}
+              onStart={(game) => startMutation.mutate(game.id)}
+              isJoining={joinMutation.isPending}
+              isStarting={startMutation.isPending}
+            />
+            {!games.isLoading && !games.error && <InProgressGamesPanel games={inProgressGames} />}
+          </div>
         </div>
       </main>
     </div>
