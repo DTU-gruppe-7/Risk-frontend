@@ -62,6 +62,13 @@ export interface Player {
   color: string // f.eks. "#d33"
 }
 
+/** Territories another player has picked, drawn in that player's colour. */
+export interface RemoteSelection {
+  sourceId: TerritoryId | null
+  targetId: TerritoryId | null
+  color: string
+}
+
 export interface SeaRoute {
   from: TerritoryId
   to: TerritoryId

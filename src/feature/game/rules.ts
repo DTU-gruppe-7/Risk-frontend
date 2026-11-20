@@ -13,6 +13,16 @@ export const CARDS_PER_TRADE = 3
 /** A player holding this many cards must trade before deploying or moving on. */
 export const FORCED_TRADE_HAND_SIZE = 5
 
+/** The player whose turn it is, or undefined when nobody has the turn (e.g. in the lobby). */
+export function currentPlayerOf(game: GameDto): PlayerDto | undefined {
+  return game.players.find((player) => player.id === game.currentPlayerId)
+}
+
+/** Identifies one turn: changes when the turn does, also when the same player gets a new turn. */
+export function turnIdOf(game: GameDto) {
+  return `${game.currentPlayerId}:${game.turnStartedAt}`
+}
+
 export function turnModeOf(
   game: GameDto,
   me: PlayerDto | undefined,

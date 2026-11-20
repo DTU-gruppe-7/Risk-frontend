@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { HubStatus } from '../../../realtime/typedHub'
 import { playerName } from '../playerName'
+import { currentPlayerOf } from '../rules'
 import type { GameDto, GamePhase, PlayerDto } from '../types'
 
 const PHASE_NAMES: Record<GamePhase, string> = {
@@ -19,7 +20,7 @@ interface TurnStatusProps {
 
 /** One line for the top bar: whose turn it is, the phase, and how much time is left. */
 export default function TurnStatus({ game, me, connectionStatus }: TurnStatusProps) {
-  const current = game.players.find((player) => player.id === game.currentPlayerId)
+  const current = currentPlayerOf(game)
   const turnTimeLimit = game.settings?.turnTimeLimit ?? 0
 
   return (

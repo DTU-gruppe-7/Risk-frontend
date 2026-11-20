@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { playerName } from '../playerName'
+import { currentPlayerOf, turnIdOf } from '../rules'
 import type { GameDto, PlayerDto } from '../types'
 
 interface Announcement {
@@ -12,8 +13,6 @@ interface Announcement {
 interface TurnBannerProps {
   game: GameDto
   me: PlayerDto | undefined
-  /** Changes when the turn does (see useTurn). */
-  turnId: string
   /** How much to scale the banner, following the width the map is drawn at. */
   scale: number
 }
@@ -23,14 +22,15 @@ interface TurnBannerProps {
  * Only shown when the turn changes while the page is open, not when the page is (re)loaded
  * in the middle of a turn.
  */
-export default function TurnBanner({ game, me, turnId, scale }: TurnBannerProps) {
+export default function TurnBanner({ game, me, scale }: TurnBannerProps) {
+  const turnId = turnIdOf(game)
   const [seenTurnId, setSeenTurnId] = useState(turnId)
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
 
   // Updating state while rendering, so the banner shows in the same render as the new turn.
   if (turnId !== seenTurnId) {
     setSeenTurnId(turnId)
-    const player = game.players.find((candidate) => candidate.id === game.currentPlayerId)
+    const player = currentPlayerOf(game)
     setAnnouncement(
       game.state === 'InProgress' && player
         ? { turnId, player, troops: player.reinforcementTroops }

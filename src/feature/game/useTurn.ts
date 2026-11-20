@@ -5,6 +5,7 @@ import {
   interactionFor,
   resolveSelection,
   selectTerritory,
+  turnIdOf,
   turnModeOf,
   type Selection,
 } from './rules'
@@ -22,7 +23,7 @@ export function useTurn(
 ) {
   // A selection belongs to one turn. Storing the turn with it makes an old selection
   // disappear by itself when the turn changes.
-  const turnId = `${game.currentPlayerId}:${game.turnStartedAt}`
+  const turnId = turnIdOf(game)
   const [stored, setStored] = useState<Selection & { turnId: string }>({ ...NO_SELECTION, turnId })
 
   const mode = turnModeOf(game, me, territories)

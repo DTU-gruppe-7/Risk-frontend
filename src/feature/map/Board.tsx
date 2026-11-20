@@ -6,6 +6,8 @@ import type {
   ContinentId,
   MapContinentDto,
   Point,
+  RemoteSelection,
+  TerritoryGeometry,
   TerritoryId,
   TerritoryNames,
   TerritoryState,
@@ -43,7 +45,22 @@ interface BoardProps {
   highlightedIds?: TerritoryId[]
   /** The chosen one among the highlighted territories. */
   targetId?: TerritoryId | null
+  /** What another player has picked, e.g. the opponent whose turn it is. */
+  remoteSelection?: RemoteSelection | null
   onTerritoryClick: (id: TerritoryId) => void
+}
+
+/** The colour of the line around a picked territory, unless another player picked it. */
+const SELECTION_COLOR = '#fff6dc'
+
+/** The line around a picked territory: dark on the outside, so it shows on any colour. */
+function SelectionOutline({ territory, color }: { territory: TerritoryGeometry; color: string }) {
+  return (
+    <g>
+      <path d={territory.path} stroke={INK} strokeWidth={2.0} />
+      <path d={territory.path} stroke={color} strokeWidth={1.0} />
+    </g>
+  )
 }
 
 function Board({
@@ -55,6 +72,7 @@ function Board({
   selectedId,
   highlightedIds = [],
   targetId = null,
+  remoteSelection = null,
   onTerritoryClick,
 }: BoardProps) {
   const stateById = new Map(territories.map((t) => [t.territoryId, t]))
@@ -74,6 +92,13 @@ function Board({
     (t) => highlightedIds.includes(t.id) && isPlayable(t.id),
   )
   const target = highlighted.find((t) => t.id === targetId)
+  const remotePicks = territoryGeometries.filter(
+    (t) =>
+      remoteSelection &&
+      (t.id === remoteSelection.sourceId || t.id === remoteSelection.targetId) &&
+      isPlayable(t.id),
+  )
+  const pickedIds = [selectedId, targetId, ...remotePicks.map((t) => t.id)]
 
   /**
    * The colour of the player who holds every territory of a continent, or null when nobody does.
@@ -129,7 +154,7 @@ function Board({
       <g>
         {territoryGeometries.map((territory) => {
           const playable = isPlayable(territory.id)
-          const isSelected = playable && (territory.id === selectedId || territory.id === targetId)
+          const isSelected = playable && pickedIds.includes(territory.id)
 
           return (
             <path
@@ -223,20 +248,24 @@ function Board({
         ))}
       </g>
 
-      {/* Layer 5: selection, possible choices and the chosen target */}
+      {/* Layer 5: selection, possible choices, the chosen target and another player's picks */}
       <g fill="none" strokeLinejoin="round" pointerEvents="none">
         {highlighted.map((t) => (
-          <path key={t.id} d={t.path} stroke="#fff6dc" strokeWidth={1.2} strokeDasharray="3 2" />
+          <path
+            key={t.id}
+            d={t.path}
+            stroke={SELECTION_COLOR}
+            strokeWidth={1.2}
+            strokeDasharray="3 2"
+          />
         ))}
         {[selected, target].map(
-          (t) =>
-            t && (
-              <g key={t.id}>
-                <path d={t.path} stroke="#4a3522" strokeWidth={2.0} />
-                <path d={t.path} stroke="#fff6dc" strokeWidth={1.0} />
-              </g>
-            ),
+          (t) => t && <SelectionOutline key={t.id} territory={t} color={SELECTION_COLOR} />,
         )}
+        {remoteSelection &&
+          remotePicks.map((t) => (
+            <SelectionOutline key={`remote:${t.id}`} territory={t} color={remoteSelection.color} />
+          ))}
       </g>
 
       {/* Layer 6: what each continent gives per turn, in the colour of the player who holds it */}

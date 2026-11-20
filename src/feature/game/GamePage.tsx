@@ -17,6 +17,7 @@ import TurnStatus from './components/TurnStatus'
 import WaitingRoom from './components/WaitingRoom'
 import { handQuery } from './queries'
 import { useGame } from './useGame'
+import { useOpponentSelection, useShareSelection } from './useLiveSelection'
 import { useTurn } from './useTurn'
 
 // The board keeps the map's proportions, so this is the largest frame that fits the space.
@@ -56,6 +57,8 @@ export default function GamePage() {
   const territoryInfos = useTerritoryInfos()
   const continents = useContinents()
   const turn = useTurn(game, me, board.territories, territoryInfos)
+  useShareSelection(gameId, turn, connectionStatus)
+  const opponentSelection = useOpponentSelection(game, me, board.territories)
   const names = territoryNames.da
   // The side panels are closed until asked for, so the map gets the whole screen.
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null)
@@ -111,6 +114,7 @@ export default function GamePage() {
             selectedId={turn.source?.territoryId ?? null}
             highlightedIds={turn.targetIds}
             targetId={turn.target?.territoryId}
+            remoteSelection={opponentSelection}
             onTerritoryClick={turn.select}
           />
 
@@ -130,7 +134,7 @@ export default function GamePage() {
             </div>
           )}
 
-          <TurnBanner game={game} me={me} turnId={turn.id} scale={scale} />
+          <TurnBanner game={game} me={me} scale={scale} />
         </div>
 
         {game.state !== 'InProgress' && (

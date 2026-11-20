@@ -49,6 +49,24 @@ export interface GameUpdate {
   territories: TerritoryDto[]
 }
 
+/**
+ * Sent to the game hub by the current player whenever they pick territories, so the other players
+ * can follow along. Both null clears the selection.
+ */
+export interface SelectTerritoriesRequest {
+  sourceTerritoryId: string | null
+  targetTerritoryId: string | null
+}
+
+/**
+ * Pushed by the game hub to the other players when the current player picks territories. Under fog
+ * of war the backend leaves out (null) the territories the receiver cannot see.
+ */
+export interface TerritorySelectionDto extends SelectTerritoriesRequest {
+  gameId: string
+  playerId: string
+}
+
 export interface GameSummaryDto {
   id: string
   hostId: string
