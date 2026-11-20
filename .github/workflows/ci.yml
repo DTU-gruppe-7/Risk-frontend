@@ -37,6 +37,9 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload af Trivy-resultater til code scanning
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -55,7 +58,7 @@ jobs:
 
       - name: Start med produktions-hærdning og tjek
         run: |
-          test "$(docker image inspect risk-frontend:ci --format '{{.Config.User}}')" = "101"
+          test "$(docker image inspect risk-frontend:ci --format '{{.Config.User}}')" = "65532"
           docker run -d --name fe -p 8080:8080 \
             --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
             risk-frontend:ci
@@ -67,13 +70,26 @@ jobs:
         if: failure()
         run: docker logs fe || true
 
+      # Rapporterer, men blokerer ikke: CVE'er i base-imaget opstår uafhængigt af PR'et og
+      # skal ikke stoppe urelateret arbejde. Fundene vises på PR'et via code scanning.
+      # Den blokerende scanning sker i CD, før et image pushes, og i trivy.yml hver nat.
       - name: Trivy-scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: risk-frontend:ci
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '1'
+          format: sarif
+          output: trivy.sarif
+          limit-severities-for-sarif: true
+          exit-code: '0'
+
+      - name: Upload Trivy-resultater
+        if: always() && hashFiles('trivy.sarif') != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-image
 
   dependency-review:
     name: Dependency review

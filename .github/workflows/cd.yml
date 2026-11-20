@@ -124,6 +124,25 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
 
+      # Sikkerheds-gate: scan før push. Et image med kendte, rettede CRITICAL/HIGH-sårbarheder
+      # får aldrig et tree-tag og kan derfor hverken deployes til dev eller promoveres til prod.
+      - name: Byg frontend til scanning
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          load: true
+          tags: risk-frontend:scan
+          cache-from: type=gha,scope=frontend
+
+      - name: Trivy-scan (blokerende)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: risk-frontend:scan
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # Genbruger lagene fra scanningen via cachen, så det pushede image er det scannede
       - name: Byg og push frontend
         id: frontend
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7

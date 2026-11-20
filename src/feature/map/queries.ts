@@ -1,7 +1,7 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { apiQuery } from '../../api/query/apiQuery'
 import { queryKeys } from '../../api/query/queryKeys'
-import type { MapDto, TerritoryInfo } from './types'
+import type { MapContinentDto, MapDto, TerritoryInfo } from './types'
 
 /** The static board. It never changes while the app runs, so it is fetched once and kept. */
 export const mapQuery = () =>
@@ -18,6 +18,13 @@ function toTerritoryInfos(map: MapDto): TerritoryInfo[] {
     continent: t.continentId,
     adjacent: t.neighborIds,
   }))
+}
+
+const toContinents = (map: MapDto): MapContinentDto[] => map.continents
+
+/** The board's continents with the troops a player gets each turn for holding all of one. */
+export function useContinents() {
+  return useSuspenseQuery({ ...mapQuery(), select: toContinents }).data
 }
 
 /** The board's territories with continent and neighbours, as Board expects them.
