@@ -18,9 +18,14 @@ export function currentPlayerOf(game: GameDto): PlayerDto | undefined {
   return game.players.find((player) => player.id === game.currentPlayerId)
 }
 
-/** Identifies one turn: changes when the turn does, also when the same player gets a new turn. */
+/**
+ * Identifies one turn: changes when the turn does, also when the same player gets a new turn.
+ * The start is compared as a point in time, not as text: the hub and the REST API may write the
+ * same time differently (e.g. more decimals or "+00:00" instead of "Z").
+ */
 export function turnIdOf(game: GameDto) {
-  return `${game.currentPlayerId}:${game.turnStartedAt}`
+  const startedAt = game.turnStartedAt ? Date.parse(game.turnStartedAt) : null
+  return `${game.currentPlayerId}:${startedAt}`
 }
 
 export function turnModeOf(
