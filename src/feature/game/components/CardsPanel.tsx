@@ -14,7 +14,7 @@ import type { BonusCardDto, BonusCardType } from '../types'
 import { useTradeCards } from '../useGameActions'
 import BonusCardFace from './BonusCardFace'
 import CardIcon from './CardIcon'
-import { Button, ErrorText, Hint, Panel } from './ui'
+import { Button, CountBadge, ErrorText, Hint, Panel, SectionHeading } from './ui'
 
 interface CardsPanelProps {
   gameId: string
@@ -33,22 +33,14 @@ interface CardsPanelProps {
   names: TerritoryNames
 }
 
-const MAX_CARDS_PER_ROW = 5
+/** The panel sits in the narrow side bar, so two cards fit side by side. */
+const CARDS_PER_ROW = 2
 
 /** The trades shown when the bonus is progressive: the next one in the game, and the two after it. */
 const UPCOMING_TRADES = ['Nu', 'Næste', 'Derefter']
 
 /** The extra troops for a card showing a territory the player holds, e.g. "2 ekstra tropper". */
 const OWNED_BONUS_TEXT = `${OWNED_TERRITORY_BONUS} ekstra tropper`
-
-/** The small heading above each part of the rules at the bottom of the panel. */
-function SectionHeading({ children, className = '' }: { children: string; className?: string }) {
-  return (
-    <h3 className={`text-xs font-semibold tracking-wide text-stone-400 uppercase ${className}`}>
-      {children}
-    </h3>
-  )
-}
 
 /** What a set is called in the list of what each set gives. */
 function setName(types: BonusCardType[]) {
@@ -90,16 +82,13 @@ export default function CardsPanel(props: CardsPanelProps) {
   }
 
   return (
-    <Panel title={`Kort (${cards.length})`}>
+    <Panel title="Kort" badge={<CountBadge>{cards.length}</CountBadge>}>
       {cards.length === 0 && (
         <Hint>Erobrer du et territorium i din tur, får du et kort, når din tur er slut.</Hint>
       )}
-      {/* Fixed card widths, so the panel is exactly as wide as the cards in it need. */}
       <ul
-        className="grid justify-center gap-3"
-        style={{
-          gridTemplateColumns: `repeat(${Math.min(Math.max(cards.length, 1), MAX_CARDS_PER_ROW)}, 7rem)`,
-        }}
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${CARDS_PER_ROW}, minmax(0, 1fr))` }}
       >
         {cards.map((card) => {
           const isSelected = selectedIds.includes(card.id)
@@ -112,15 +101,15 @@ export default function CardsPanel(props: CardsPanelProps) {
                 aria-pressed={isSelected}
                 disabled={!isSelected && selected.length >= CARDS_PER_TRADE}
                 onClick={() => toggle(card)}
-                className="block w-full rounded-lg disabled:opacity-50"
+                className="block w-full rounded-lg transition hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 <BonusCardFace
                   card={card}
                   names={names}
                   className={
                     isSelected
-                      ? 'border-emerald-400 bg-emerald-900/60'
-                      : 'border-stone-600 bg-stone-700 hover:bg-stone-600'
+                      ? 'border-amber-300 bg-amber-300/15 ring-2 ring-amber-300/40'
+                      : 'border-white/10 bg-white/5 hover:border-white/25'
                   }
                 >
                   {givesBonus(card) && (
@@ -132,8 +121,8 @@ export default function CardsPanel(props: CardsPanelProps) {
                       }
                       className={`absolute top-2 right-2 rounded-full px-2 text-sm font-bold ${
                         bonusIsUsed
-                          ? 'bg-stone-600 text-stone-400 line-through'
-                          : 'bg-emerald-600 text-white'
+                          ? 'bg-stone-700 text-stone-400 line-through'
+                          : 'bg-emerald-500 text-stone-950'
                       }`}
                     >
                       +{OWNED_TERRITORY_BONUS}
@@ -167,7 +156,7 @@ export default function CardsPanel(props: CardsPanelProps) {
       {trade.data && <Hint>Du fik {trade.data.troopsAwarded} tropper for dine kort.</Hint>}
       <ErrorText error={trade.error} />
 
-      <div className="flex flex-col gap-1 border-t border-stone-700 pt-2">
+      <div className="flex flex-col gap-1.5 border-t border-white/10 pt-3">
         <SectionHeading>{isFixed ? 'Et sæt giver' : 'Gyldige sæt'}</SectionHeading>
         <ul className="flex flex-col gap-1 text-sm">
           {TRADE_SETS.map((set) => (
@@ -194,14 +183,16 @@ export default function CardsPanel(props: CardsPanelProps) {
               {UPCOMING_TRADES.map((label, index) => (
                 <li
                   key={label}
-                  className={`flex flex-col rounded px-1 py-1 ${
-                    index === 0 ? 'bg-emerald-800' : 'bg-stone-700'
+                  className={`flex flex-col rounded-lg px-1 py-1 ${
+                    index === 0 ? 'bg-amber-400/90 text-stone-950' : 'bg-white/5'
                   }`}
                 >
                   <span className="text-lg leading-tight font-bold tabular-nums">
                     {progressiveTradeValue(setsTraded + index)}
                   </span>
-                  <span className="text-xs text-stone-300">{label}</span>
+                  <span className={`text-xs ${index === 0 ? 'text-stone-800' : 'text-stone-400'}`}>
+                    {label}
+                  </span>
                 </li>
               ))}
             </ol>

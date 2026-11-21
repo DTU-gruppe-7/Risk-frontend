@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import type { TerritoryNames, TerritoryState } from '../../map/types'
+import TroopRoute from './TroopRoute'
 import { ActionBox, Button, ErrorText, Hint, TroopPicker } from './ui'
 
 interface MoveTroopsPanelProps {
@@ -22,8 +23,6 @@ interface MoveTroopsPanelProps {
 export default function MoveTroopsPanel(props: MoveTroopsPanelProps) {
   const { title, from, to, names, hint, submitLabel, initial, isPending, error, onMove } = props
   const [wanted, setWanted] = useState(initial === 'max' ? Infinity : 1)
-  const nameOf = (territory: TerritoryState) =>
-    names[territory.territoryId] ?? territory.territoryId
 
   // One troop always stays behind.
   const max = from ? from.units - 1 : 0
@@ -33,9 +32,7 @@ export default function MoveTroopsPanel(props: MoveTroopsPanelProps) {
     <ActionBox title={title}>
       {from && to ? (
         <>
-          <Hint>
-            Fra {nameOf(from)} ({from.units}) til {nameOf(to)} ({to.units})
-          </Hint>
+          <TroopRoute from={from} to={to} names={names} verb="til" />
           <TroopPicker label="Antal tropper" max={max} value={troops} onChange={setWanted} />
           <Button size="sm" disabled={isPending} onClick={() => onMove(from, to, troops)}>
             {submitLabel}

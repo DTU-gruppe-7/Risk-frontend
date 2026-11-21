@@ -19,7 +19,7 @@ export default function Announcement({ borderColor, scale, onDone, children }: A
   return (
     <div
       role="status"
-      className="flex animate-announcement flex-col items-center gap-2 rounded-2xl border-2 border-stone-500 bg-stone-900/85 px-10 py-5 text-stone-100 shadow-2xl backdrop-blur-sm"
+      className="flex animate-announcement flex-col items-center gap-2 rounded-2xl border-2 border-amber-100/20 bg-stone-950/85 px-10 py-5 text-stone-100 shadow-2xl ring-1 ring-white/5 backdrop-blur-sm ring-inset"
       style={{ borderColor, zoom: scale }}
       onAnimationEnd={(event) => {
         // Only the box's own animation, not one inside it.

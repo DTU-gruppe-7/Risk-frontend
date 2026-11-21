@@ -3,6 +3,7 @@ import type { TerritoryNames, TerritoryState } from '../../map/types'
 import { MAX_ATTACK_DICE } from '../rules'
 import type { GameActions } from '../useGameActions'
 import BattleResult from './BattleResult'
+import TroopRoute from './TroopRoute'
 import { ActionBox, Button, ErrorText, Hint, TroopPicker } from './ui'
 
 interface AttackPanelProps {
@@ -27,9 +28,7 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
     <ActionBox title="Angreb">
       {from && to ? (
         <>
-          <Hint>
-            {nameOf(from)} ({from.units}) angriber {nameOf(to)} ({to.units})
-          </Hint>
+          <TroopRoute from={from} to={to} names={names} verb="angriber" />
           <TroopPicker label="Terninger" max={maxDice} value={dice} onChange={setWantedDice} />
           <div className="grid grid-cols-2 gap-2">
             <Button

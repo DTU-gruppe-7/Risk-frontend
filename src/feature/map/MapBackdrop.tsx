@@ -1,12 +1,13 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import mapBackground from '../../assets/map/map-background.svg'
-import { CONTINENT_COLORS } from '../map/colors'
-import { MAP_HEIGHT, MAP_VIEWBOX, MAP_WIDTH, territoryGeometries } from '../map/geometry'
-import { mapQuery } from '../map/queries'
+import { CONTINENT_COLORS } from './colors'
+import { MAP_HEIGHT, MAP_VIEWBOX, MAP_WIDTH, territoryGeometries } from './geometry'
+import { mapQuery } from './queries'
 
 /**
- * The board as a blurred, darkened backdrop for the lobby. Purely decorative: no labels,
- * no interaction, hidden from screen readers. The route loader has already fetched the map.
+ * The board as a blurred, darkened backdrop behind a page, e.g. the lobby or a game. Purely
+ * decorative: no labels, no interaction, hidden from screen readers. The route loader has already
+ * fetched the map. Put the page's content in a positioned element after it, so it lies on top.
  */
 export default function MapBackdrop() {
   const map = useSuspenseQuery(mapQuery()).data

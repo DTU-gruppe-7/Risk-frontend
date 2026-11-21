@@ -4,6 +4,7 @@ import { currentPlayerOf, turnIdOf } from '../rules'
 import { troopWord } from '../troopWord'
 import type { GameDto, PlayerDto } from '../types'
 import Announcement from './Announcement'
+import { PlayerDot } from './ui'
 
 interface TurnAnnouncement {
   turnId: string
@@ -55,10 +56,7 @@ export default function TurnBanner({ game, me, scale, waiting = false }: TurnBan
       onDone={() => setAnnouncement(null)}
     >
       <p className="flex items-center gap-2 text-lg font-semibold">
-        <span
-          className="h-4 w-4 shrink-0 rounded-full border border-stone-300"
-          style={{ backgroundColor: player.color }}
-        />
+        <PlayerDot color={player.color} size="md" />
         {isMe ? 'Din tur' : `${playerName(player)}s tur`}
       </p>
       {troops > 0 && (

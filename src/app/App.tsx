@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { queryKeys } from '../api/query/queryKeys'
-import { useAuth } from '../auth/useAuth'
+import { useAuth, useLogout } from '../auth/useAuth'
 import { createGame, joinGame, startGame } from '../feature/game/mutations'
 import { gamesQuery, territoriesQuery } from '../feature/game/queries'
 import CreateGamePanel, { type CreateGameInput } from '../feature/lobby/CreateGamePanel'
 import InProgressGamesPanel from '../feature/lobby/InProgressGamesPanel'
-import MapBackdrop from '../feature/lobby/MapBackdrop'
+import MapBackdrop from '../feature/map/MapBackdrop'
 import OpenGamesPanel from '../feature/lobby/OpenGamesPanel'
 
 /** The lobby: the board blurred in the background, with panels to create, join and start games. */
@@ -14,6 +14,7 @@ function App() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const logoutMutation = useLogout()
   const games = useQuery(gamesQuery())
 
   const openGames = games.data?.filter((game) => game.state === 'Lobby') ?? []
@@ -65,6 +66,14 @@ function App() {
           {user && (
             <p className="mt-3 text-stone-300">
               Velkommen, <span className="font-medium text-amber-100">{user.userName}</span>
+              <button
+                type="button"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+                className="ml-3 text-sm text-stone-400 underline hover:text-white disabled:opacity-50"
+              >
+                Log ud
+              </button>
             </p>
           )}
         </header>

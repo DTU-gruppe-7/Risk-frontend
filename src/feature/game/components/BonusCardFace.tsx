@@ -14,7 +14,7 @@ interface BonusCardFaceProps {
   children?: ReactNode
 }
 
-const DEFAULT_COLORS = 'border-stone-600 bg-stone-700'
+const DEFAULT_COLORS = 'border-white/15 bg-stone-800'
 
 /** How a bonus card looks: its type, and the territory on it (a wild card has none). */
 export default function BonusCardFace({
@@ -30,18 +30,18 @@ export default function BonusCardFace({
       {children}
       {card.territoryIdentifier ? (
         <>
-          <CardIcon type={card.type} className="absolute top-2 left-2 h-7 w-7" />
+          <CardIcon type={card.type} className="absolute top-1.5 left-1.5 h-6 w-6" />
           <TerritoryShape
             id={card.territoryIdentifier}
-            className="min-h-0 w-full flex-1 px-2 pt-8 text-stone-300"
+            className="min-h-0 w-full flex-1 px-1 pt-7 text-stone-300"
           />
         </>
       ) : (
         <span className="grid min-h-0 flex-1 place-items-center">
-          <CardIcon type={card.type} className="h-16 w-16" />
+          <CardIcon type={card.type} className="w-3/5" />
         </span>
       )}
-      <span className="line-clamp-2 text-center text-sm leading-tight font-semibold text-stone-200">
+      <span className="line-clamp-2 text-center text-xs leading-tight font-semibold text-stone-200">
         {card.territoryIdentifier
           ? (names[card.territoryIdentifier] ?? card.territoryIdentifier)
           : CARD_TYPE_NAMES[card.type]}
