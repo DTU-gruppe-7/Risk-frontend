@@ -1,5 +1,5 @@
 import type { PlayerId, TerritoryId, TerritoryInfo, TerritoryState } from '../map/types'
-import type { BonusCardDto, BonusCardType, GameDto, PlayerDto } from './types'
+import type { BattleRoundDto, BonusCardDto, BonusCardType, GameDto, PlayerDto } from './types'
 
 // Client-side copies of the game rules, used only to guide the player: what can be clicked and
 // which buttons are enabled. The backend validates every action and is the authority.
@@ -9,6 +9,38 @@ export type TurnMode = 'waiting' | 'deploy' | 'attack' | 'conquest' | 'fortify'
 
 export const MAX_ATTACK_DICE = 3
 export const MAX_DEFENSE_DICE = 2
+/** The defender always defends with as many dice as possible: one per troop, up to the maximum. */
+export function defenseDiceFor(defendingUnits: number) {
+  return Math.min(MAX_DEFENSE_DICE, defendingUnits)
+}
+
+/** How a die did in a roll: it beat the die it was paired with, lost to it, or had no pair. */
+export type DieOutcome = 'won' | 'lost' | 'unpaired'
+
+export interface DuelDie {
+  value: number
+  outcome: DieOutcome
+}
+
+/**
+ * Pairs up the dice of a roll as in the board game: both sides highest first, the highest die
+ * against the highest, and so on. The attacker must roll higher to win a pair; ties go to the
+ * defender. The dice left over on the side that rolled more have no pair.
+ */
+export function duelOf(round: BattleRoundDto): { attacker: DuelDie[]; defender: DuelDie[] } {
+  const highestFirst = (dice: number[]) => [...dice].sort((a, b) => b - a)
+  const attacker = highestFirst(round.attackerDice)
+  const defender = highestFirst(round.defenderDice)
+  const pairs = Math.min(attacker.length, defender.length)
+  const outcome = (index: number, wins: boolean): DieOutcome =>
+    index >= pairs ? 'unpaired' : wins ? 'won' : 'lost'
+
+  return {
+    attacker: attacker.map((value, i) => ({ value, outcome: outcome(i, value > defender[i]) })),
+    defender: defender.map((value, i) => ({ value, outcome: outcome(i, value >= attacker[i]) })),
+  }
+}
+
 export const CARDS_PER_TRADE = 3
 /** A player holding this many cards must trade before deploying or moving on. */
 export const FORCED_TRADE_HAND_SIZE = 5

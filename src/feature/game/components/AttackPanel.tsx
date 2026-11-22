@@ -11,12 +11,21 @@ interface AttackPanelProps {
   to: TerritoryState | null
   names: TerritoryNames
   battle: GameActions['battle']
+  /** The last roll is still being shown on the map: its result waits, and so does the next roll. */
+  isRollingDice: boolean
   endPhase: GameActions['endPhase']
 }
 
-export default function AttackPanel({ from, to, names, battle, endPhase }: AttackPanelProps) {
+export default function AttackPanel({
+  from,
+  to,
+  names,
+  battle,
+  isRollingDice,
+  endPhase,
+}: AttackPanelProps) {
   const [wantedDice, setWantedDice] = useState(MAX_ATTACK_DICE)
-  const isPending = battle.isPending || endPhase.isPending
+  const isPending = battle.isPending || endPhase.isPending || isRollingDice
   const nameOf = (territory: TerritoryState) =>
     names[territory.territoryId] ?? territory.territoryId
 
@@ -55,7 +64,7 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
             : 'Vælg et af dine territorier med mindst 2 tropper.'}
         </Hint>
       )}
-      {battle.data && <BattleResult report={battle.data} />}
+      {battle.data && !isRollingDice && <BattleResult report={battle.data} />}
       <ErrorText error={battle.error ?? endPhase.error} />
       <Button
         size="sm"

@@ -9,6 +9,7 @@ import { useContinents, useTerritoryInfos } from '../map/queries'
 import { territoryNames } from '../map/names'
 import type { TerritoryId } from '../map/types'
 import ActionPanel from './components/ActionPanel'
+import AttackDice from './components/AttackDice'
 import BackToLobbyLink from './components/BackToLobbyLink'
 import CardsPanel from './components/CardsPanel'
 import GameOver from './components/GameOver'
@@ -23,6 +24,7 @@ import { useGame } from './useGame'
 import { troopRouteOf } from './rules'
 import { useHand } from './useHand'
 import { useOpponentSelection, useShareSelection } from './useLiveSelection'
+import { useAttackReveal } from './useAttackReveal'
 import { useTurn } from './useTurn'
 
 // The board keeps the map's proportions, so this is the largest frame that fits the space.
@@ -61,16 +63,19 @@ export default function GamePage() {
   const { user } = useAuth()
   const territoryInfos = useTerritoryInfos()
   const continents = useContinents()
-  const turn = useTurn(game, me, board.territories, territoryInfos)
+  // The board as the player should see it: an attack's result is held back until the dice show it.
+  const attackReveal = useAttackReveal(gameId, board.territories)
+  const { territories } = attackReveal
+  const turn = useTurn(game, me, territories, territoryInfos)
   useShareSelection(gameId, turn, connectionStatus)
-  const opponentSelection = useOpponentSelection(game, me, board.territories)
+  const opponentSelection = useOpponentSelection(game, me, territories)
   const hand = useHand(game, me?.id)
   // The arrows follow the way troops go: through the player's own territories when fortifying.
   const routeOf = (
     sourceId: TerritoryId | null | undefined,
     targetId: TerritoryId | null | undefined,
     isFortifying: boolean,
-  ) => troopRouteOf(sourceId, targetId, isFortifying, board.territories, territoryInfos)
+  ) => troopRouteOf(sourceId, targetId, isFortifying, territories, territoryInfos)
   const arrowRoutes = [
     routeOf(turn.source?.territoryId, turn.target?.territoryId, turn.mode === 'fortify'),
     routeOf(
@@ -122,6 +127,7 @@ export default function GamePage() {
               me={me}
               turn={turn}
               cardCount={hand.cards.length}
+              isRollingDice={attackReveal.isHidingResult}
               names={names}
             />
           )}
@@ -130,12 +136,7 @@ export default function GamePage() {
 
           <SideBarTabs tabs={tabs} openId={openPanel} onChange={setOpenPanel} />
           {openPanel === 'players' && (
-            <PlayerList
-              game={game}
-              me={me}
-              territories={board.territories}
-              infos={territoryInfos}
-            />
+            <PlayerList game={game} me={me} territories={territories} infos={territoryInfos} />
           )}
           {openPanel === 'mission' && hasMission && <MissionPanel gameId={gameId} />}
           {openPanel === 'cards' && me && hasCards && (
@@ -148,7 +149,7 @@ export default function GamePage() {
               setsTraded={
                 game.settings?.cardTradeMode === 'Progressive' ? (game.cardSetsTraded ?? 0) : null
               }
-              territories={board.territories}
+              territories={territories}
               names={names}
             />
           )}
@@ -159,7 +160,7 @@ export default function GamePage() {
           {/* Exactly as large as the drawn map, so things can be placed relative to the map itself. */}
           <div ref={frameRef} className="relative" style={MAP_FRAME_STYLE}>
             <Board
-              territories={board.territories}
+              territories={territories}
               infos={territoryInfos}
               continents={continents}
               names={names}
@@ -181,6 +182,9 @@ export default function GamePage() {
                   scale={scale}
                   onDone={hand.dismissNewCards}
                 />
+              )}
+              {me && isPlaying && (
+                <AttackDice reveal={attackReveal} players={board.players} scale={scale} />
               )}
               {/* The new cards first, so they can be seen before the next player's turn is shown. */}
               <TurnBanner game={game} me={me} scale={scale} waiting={hand.isAnnouncing} />

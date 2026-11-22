@@ -15,11 +15,20 @@ interface ActionPanelProps {
   turn: Turn
   /** The bonus cards the player holds (see useHand). */
   cardCount: number
+  /** An attack roll is being shown on the map, so its result must not be shown here yet. */
+  isRollingDice: boolean
   names: TerritoryNames
 }
 
 /** The controls for what the player can do right now. Shows nothing while they wait. */
-export default function ActionPanel({ gameId, me, turn, cardCount, names }: ActionPanelProps) {
+export default function ActionPanel({
+  gameId,
+  me,
+  turn,
+  cardCount,
+  isRollingDice,
+  names,
+}: ActionPanelProps) {
   const actions = useGameActions(gameId)
   const { mode, source, target } = turn
 
@@ -46,6 +55,7 @@ export default function ActionPanel({ gameId, me, turn, cardCount, names }: Acti
           to={target}
           names={names}
           battle={actions.battle}
+          isRollingDice={isRollingDice}
           endPhase={actions.endPhase}
         />
       )

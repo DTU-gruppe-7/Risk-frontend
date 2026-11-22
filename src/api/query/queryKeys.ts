@@ -10,5 +10,8 @@ export const queryKeys = {
     // The current user's own cards. The cache is cleared when the user changes (see AuthProvider).
     hand: (gameId: string) => ['games', 'hand', gameId] as const,
     missions: (gameId: string) => ['games', 'missions', gameId] as const,
+    // The key of the attack mutation (not a query), so the dice can be shown outside the panel
+    // that rolls them (see useAttackRoll).
+    battle: (gameId: string) => ['games', 'battle', gameId] as const,
   },
 }
