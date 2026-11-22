@@ -9,6 +9,7 @@ import { useContinents, useTerritoryInfos } from '../map/queries'
 import { territoryNames } from '../map/names'
 import type { TerritoryId } from '../map/types'
 import ActionPanel from './components/ActionPanel'
+import BackToLobbyLink from './components/BackToLobbyLink'
 import CardsPanel from './components/CardsPanel'
 import GameOver from './components/GameOver'
 import MissionPanel from './components/MissionPanel'
@@ -100,6 +101,7 @@ export default function GamePage() {
       <MapBackdrop />
 
       <header className="relative z-10 flex shrink-0 items-center gap-4 border-b border-amber-100/10 bg-linear-to-b from-stone-900/55 to-stone-900/40 px-3 py-2 shadow-lg shadow-black/40 backdrop-blur-sm">
+        <BackToLobbyLink variant="compact" />
         {isPlaying ? (
           <TurnStatus game={game} me={me} connectionStatus={connectionStatus} />
         ) : (
@@ -128,7 +130,12 @@ export default function GamePage() {
 
           <SideBarTabs tabs={tabs} openId={openPanel} onChange={setOpenPanel} />
           {openPanel === 'players' && (
-            <PlayerList game={game} me={me} territories={board.territories} />
+            <PlayerList
+              game={game}
+              me={me}
+              territories={board.territories}
+              infos={territoryInfos}
+            />
           )}
           {openPanel === 'mission' && hasMission && <MissionPanel gameId={gameId} />}
           {openPanel === 'cards' && me && hasCards && (

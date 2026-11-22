@@ -2,6 +2,7 @@ import mapBackground from '../../assets/map/map-background.svg'
 import { MAP_HEIGHT, MAP_WIDTH, MAP_VIEWBOX, territoryGeometries } from './geometry'
 import TerritoryArrow from './TerritoryArrow'
 import TerritoryLabel from './TerritoryLabel'
+import { continentOwnerOf } from './continents'
 import { seaRoutes } from './seaRoutes'
 import type {
   ContinentId,
@@ -112,21 +113,10 @@ function Board({
     .map((route) => route.map(playableGeometryOf))
     .filter((route): route is TerritoryGeometry[] => route.every((t) => t !== undefined))
 
-  /**
-   * The colour of the player who holds every territory of a continent, or null when nobody does.
-   * Blizzards cannot be held and do not count. Under fog of war it is only known when the whole
-   * continent can be seen.
-   */
+  /** The colour of the player who holds every territory of a continent, or null when nobody does. */
   function continentOwnerColor(continentId: ContinentId) {
-    const states = infos
-      .filter((info) => info.continent === continentId)
-      .map((info) => stateById.get(info.id))
-      .filter((state) => !state?.blizzard)
-    const ownerId = states[0]?.ownerId
-    if (!ownerId || !states.every((state) => state?.visible && state.ownerId === ownerId)) {
-      return null
-    }
-    return playersById.get(ownerId)?.color ?? null
+    const ownerId = continentOwnerOf(continentId, territories, infos)
+    return ownerId ? (playersById.get(ownerId)?.color ?? null) : null
   }
 
   const continentOwners = continents.map((continent) => ({
