@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   check:
-    name: Lint, format og build
+    name: Lint, format, test og build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,6 +30,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run format:check
       - run: npm run lint -- --max-warnings=0
+      - run: npm test
       - run: npm run build
 
   smoke-test:

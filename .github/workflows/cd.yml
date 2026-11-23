@@ -157,6 +157,9 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+          # SBOM: en liste over alle pakker i imaget, gemt sammen med det i registryet.
+          # Generatoren er pinnet til digest ligesom resten. Den opdateres ikke af Dependabot.
+          attests: type=sbom,generator=docker/buildkit-syft-scanner:1.12.1@sha256:873a7458c3c8ac8e32c7b796c10e1600b07b963d2aa000a72a2d97aaaa2d6315
 
       - name: Signér image (keyless)
         env:
