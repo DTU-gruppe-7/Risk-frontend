@@ -1,6 +1,7 @@
 import { API_BASE_URL, HUB_URLS } from '../api/config'
 import { getValidAccessToken } from '../api/auth/session'
 import type {
+  CardsReceivedDto,
   GameUpdate,
   SelectTerritoriesRequest,
   TerritorySelectionDto,
@@ -13,6 +14,11 @@ export type GameHubEvents = {
   GameUpdated: (update: GameUpdate) => void
   /** Sent to the other players when the current player picks territories. */
   SelectionChanged: (selection: TerritorySelectionDto) => void
+  /**
+   * Sent only to the player who got new cards: for a conquest when their turn ends, or at once
+   * from a player they knocked out. Comes after the GameUpdated for the same change.
+   */
+  CardsReceived: (received: CardsReceivedDto) => void
 }
 
 // Methods the client calls on the server.

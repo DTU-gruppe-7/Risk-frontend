@@ -1,5 +1,5 @@
 import type { PlayerId, TerritoryId, TerritoryInfo, TerritoryState } from '../map/types'
-import type { BattleRoundDto, BonusCardDto, BonusCardType, GameDto, PlayerDto } from './types'
+import type { BonusCardType, GameDto, PendingConquestDto, PlayerDto } from './types'
 
 // Client-side copies of the game rules, used only to guide the player: what can be clicked and
 // which buttons are enabled. The backend validates every action and is the authority.
@@ -8,51 +8,10 @@ import type { BattleRoundDto, BonusCardDto, BonusCardType, GameDto, PlayerDto } 
 export type TurnMode = 'waiting' | 'deploy' | 'attack' | 'conquest' | 'fortify'
 
 export const MAX_ATTACK_DICE = 3
-export const MAX_DEFENSE_DICE = 2
-/** The defender always defends with as many dice as possible: one per troop, up to the maximum. */
-export function defenseDiceFor(defendingUnits: number) {
-  return Math.min(MAX_DEFENSE_DICE, defendingUnits)
-}
-
-/** How a die did in a roll: it beat the die it was paired with, lost to it, or had no pair. */
-export type DieOutcome = 'won' | 'lost' | 'unpaired'
-
-export interface DuelDie {
-  value: number
-  outcome: DieOutcome
-}
-
-/**
- * Pairs up the dice of a roll as in the board game: both sides highest first, the highest die
- * against the highest, and so on. The attacker must roll higher to win a pair; ties go to the
- * defender. The dice left over on the side that rolled more have no pair.
- */
-export function duelOf(round: BattleRoundDto): { attacker: DuelDie[]; defender: DuelDie[] } {
-  const highestFirst = (dice: number[]) => [...dice].sort((a, b) => b - a)
-  const attacker = highestFirst(round.attackerDice)
-  const defender = highestFirst(round.defenderDice)
-  const pairs = Math.min(attacker.length, defender.length)
-  const outcome = (index: number, wins: boolean): DieOutcome =>
-    index >= pairs ? 'unpaired' : wins ? 'won' : 'lost'
-
-  return {
-    attacker: attacker.map((value, i) => ({ value, outcome: outcome(i, value > defender[i]) })),
-    defender: defender.map((value, i) => ({ value, outcome: outcome(i, value >= attacker[i]) })),
-  }
-}
-
-export const CARDS_PER_TRADE = 3
-/** A player holding this many cards must trade before deploying or moving on. */
-export const FORCED_TRADE_HAND_SIZE = 5
 
 /** The player whose turn it is, or undefined when nobody has the turn (e.g. in the lobby). */
 export function currentPlayerOf(game: GameDto): PlayerDto | undefined {
   return game.players.find((player) => player.id === game.currentPlayerId)
-}
-
-/** How many players have been knocked out of the game. */
-export function eliminatedCountOf(game: GameDto) {
-  return game.players.filter((player) => player.isEliminated).length
 }
 
 /**
@@ -68,7 +27,7 @@ export function turnIdOf(game: GameDto) {
 export function turnModeOf(
   game: GameDto,
   me: PlayerDto | undefined,
-  territories: TerritoryState[],
+  pendingConquest: PendingConquestDto | null,
 ): TurnMode {
   if (game.state !== 'InProgress' || !me || game.currentPlayerId !== me.id) return 'waiting'
 
@@ -76,15 +35,10 @@ export function turnModeOf(
     case 'Deployment':
       return 'deploy'
     case 'Attack':
-      return findPendingConquest(territories) ? 'conquest' : 'attack'
+      return pendingConquest ? 'conquest' : 'attack'
     case 'Fortify':
       return 'fortify'
   }
-}
-
-/** A conquered territory holds no troops until the attacker has moved some in. */
-export function findPendingConquest(territories: TerritoryState[]) {
-  return territories.find((territory) => !territory.blizzard && territory.units === 0)
 }
 
 /** Which territories can be picked in a mode: first a source, then one of its targets. */
@@ -138,6 +92,7 @@ export function interactionFor(
   territories: TerritoryState[],
   infos: TerritoryInfo[],
   playerId: PlayerId | undefined,
+  pendingConquest: PendingConquestDto | null,
 ): Interaction {
   if (mode === 'waiting' || !playerId) return NO_INTERACTION
 
@@ -164,13 +119,14 @@ export function interactionFor(
     case 'attack':
       return withTargets((sourceId) => neighborsOf(sourceId).filter((id) => !isMine(id)))
     case 'conquest': {
-      // Troops move in from a territory next to the conquered one. After a reload we no longer
-      // know which one attacked, so every candidate can be picked.
-      const conquered = findPendingConquest(territories)?.territoryId
-      return withTargets(
-        (sourceId) => (conquered && neighborsOf(sourceId).includes(conquered) ? [conquered] : []),
-        true,
-      )
+      // The server says which territory attacked and which was conquered, so both are picked by
+      // themselves, also after a reload.
+      const mapIdOf = (stateId: string | undefined) =>
+        territories.find((territory) => territory.stateId === stateId)?.territoryId
+      const from = mapIdOf(pendingConquest?.fromTerritoryId)
+      const to = mapIdOf(pendingConquest?.toTerritoryId)
+      if (!from || !to) return NO_INTERACTION
+      return { sources: [from], targetsOf: (id) => (id === from ? [to] : []), autoSelect: true }
     }
     case 'fortify':
       return withTargets(reachableFrom)
@@ -246,55 +202,4 @@ export const CARD_TYPE_NAMES: Record<BonusCardType, string> = {
   Cavalry: 'Kavaleri',
   Artillery: 'Artilleri',
   Wild: 'Wild card',
-}
-
-/**
- * The sets that can be traded and the troops each one gives. These are the classic fixed values;
- * the backend decides what a trade really gives, so keep them in step with it.
- */
-export const TRADE_SETS: { types: BonusCardType[]; troops: number }[] = [
-  { types: ['Infantry', 'Infantry', 'Infantry'], troops: 4 },
-  { types: ['Cavalry', 'Cavalry', 'Cavalry'], troops: 6 },
-  { types: ['Artillery', 'Artillery', 'Artillery'], troops: 8 },
-  { types: ['Infantry', 'Cavalry', 'Artillery'], troops: 10 },
-]
-
-/**
- * The extra troops put on a territory the player holds when a card showing it is traded, at most
- * once per trade. Like TRADE_SETS, keep it in step with the backend.
- */
-export const OWNED_TERRITORY_BONUS = 2
-
-/**
- * The troops a set is expected to give, or null when that is not known: the set is not valid,
- * or it holds a wild card, where the backend picks what the wild card counts as.
- */
-export function tradeValueOf(cards: BonusCardDto[]) {
-  if (!isValidCardSet(cards) || cards.some((card) => card.type === 'Wild')) return null
-  const types = cards.map((card) => card.type).sort()
-  const match = TRADE_SETS.find((set) => [...set.types].sort().join() === types.join())
-  return match?.troops ?? null
-}
-
-// The classic rising values: the first sets give these, and every set after that gives 5 more.
-const PROGRESSIVE_TRADE_VALUES = [4, 6, 8, 10, 12, 15]
-const PROGRESSIVE_TRADE_STEP = 5
-
-/**
- * The troops a set gives under the progressive card bonus, where only the number of sets traded
- * before it counts, not which cards are in it. Like TRADE_SETS, keep it in step with the backend.
- */
-export function progressiveTradeValue(setsTraded: number) {
-  const last = PROGRESSIVE_TRADE_VALUES.length - 1
-  return setsTraded <= last
-    ? PROGRESSIVE_TRADE_VALUES[setsTraded]
-    : PROGRESSIVE_TRADE_VALUES[last] + (setsTraded - last) * PROGRESSIVE_TRADE_STEP
-}
-
-/** Three cards can be traded when they are alike, all different, or include a wild card. */
-export function isValidCardSet(cards: BonusCardDto[]) {
-  if (cards.length !== CARDS_PER_TRADE) return false
-  if (cards.some((card) => card.type === 'Wild')) return true
-  const types = new Set(cards.map((card) => card.type)).size
-  return types === 1 || types === CARDS_PER_TRADE
 }

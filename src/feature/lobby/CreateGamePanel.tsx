@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { progressiveTradeValue, TRADE_SETS } from '../game/rules'
-import type { CardTradeMode, CreateGameRequest, GameVictoryMode } from '../game/types'
+import { useQuery } from '@tanstack/react-query'
+import { cardTradeRulesQuery } from '../game/queries'
+import type {
+  CardTradeMode,
+  CardTradeRulesResponse,
+  CreateGameRequest,
+  GameVictoryMode,
+} from '../game/types'
 import {
   ChoiceCards,
   ColorPicker,
@@ -20,22 +26,34 @@ const VICTORY_MODES: { value: GameVictoryMode; title: string; description: strin
   { value: 'Mission', title: 'Hemmelige missioner', description: 'Hver spiller får et mål' },
 ]
 
-// Worked out from the trade values the cards panel shows, so the two always agree.
-const FIXED_TROOPS = TRADE_SETS.map((set) => set.troops)
-const FIRST_PROGRESSIVE_TROOPS = [0, 1, 2, 3].map(progressiveTradeValue)
+/** How many of the first progressive values to show in the explanation. */
+const SHOWN_PROGRESSIVE_VALUES = 4
 
-const CARD_TRADE_MODES: { value: CardTradeMode; title: string; description: string }[] = [
-  {
-    value: 'Fixed',
-    title: 'Faste værdier',
-    description: `Et sæt giver ${Math.min(...FIXED_TROOPS)}–${Math.max(...FIXED_TROOPS)} tropper efter kortene`,
-  },
-  {
-    value: 'Progressive',
-    title: 'Stigende bonus',
-    description: `Hvert sæt giver mere: ${FIRST_PROGRESSIVE_TROOPS.join(', ')}, …`,
-  },
-]
+/** The two ways card sets are valued, explained with the values from the server once they are in. */
+function cardTradeModes(
+  rules: CardTradeRulesResponse | undefined,
+): { value: CardTradeMode; title: string; description: string }[] {
+  const fixed = rules?.fixedSets.map((set) => set.troops) ?? []
+  const progressive = rules?.firstProgressiveValues.slice(0, SHOWN_PROGRESSIVE_VALUES) ?? []
+  return [
+    {
+      value: 'Fixed',
+      title: 'Faste værdier',
+      description:
+        fixed.length > 0
+          ? `Et sæt giver ${Math.min(...fixed)}–${Math.max(...fixed)} tropper efter kortene`
+          : 'Et sæt giver tropper efter kortene',
+    },
+    {
+      value: 'Progressive',
+      title: 'Stigende bonus',
+      description:
+        progressive.length > 0
+          ? `Hvert sæt giver mere: ${progressive.join(', ')}, …`
+          : 'Hvert sæt giver mere end det forrige',
+    },
+  ]
+}
 
 const TURN_TIMES = [
   { value: 0, label: 'Ingen' },
@@ -64,6 +82,7 @@ export default function CreateGamePanel({
   const [color, setColor] = useState<PlayerColor>('red')
   const [victoryMode, setVictoryMode] = useState<GameVictoryMode>('CompleteConquest')
   const [cardTradeMode, setCardTradeMode] = useState<CardTradeMode>('Fixed')
+  const { data: cardTradeRules } = useQuery(cardTradeRulesQuery())
   const [hasFogOfWar, setHasFogOfWar] = useState(false)
   const [blizzardCount, setBlizzardCount] = useState(0)
   const [turnTimeLimit, setTurnTimeLimit] = useState(0)
@@ -116,7 +135,7 @@ export default function CreateGamePanel({
           <FieldLabel hint="Når kort byttes">Bonustropper</FieldLabel>
           <ChoiceCards
             label="Bonustropper"
-            options={CARD_TRADE_MODES}
+            options={cardTradeModes(cardTradeRules)}
             value={cardTradeMode}
             onChange={setCardTradeMode}
           />

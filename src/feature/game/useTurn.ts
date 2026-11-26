@@ -9,7 +9,7 @@ import {
   turnModeOf,
   type Selection,
 } from './rules'
-import type { GameDto, PlayerDto } from './types'
+import type { GameDto, PendingConquestDto, PlayerDto } from './types'
 
 /**
  * The current user's part of a turn: what they can do right now (mode) and which
@@ -20,17 +20,19 @@ export function useTurn(
   me: PlayerDto | undefined,
   territories: TerritoryState[],
   infos: TerritoryInfo[],
+  /** The conquest waiting for troops, as the player may see it now (see useAttackReveal). */
+  pendingConquest: PendingConquestDto | null,
 ) {
   // A selection belongs to one turn. Storing the turn with it makes an old selection
   // disappear by itself when the turn changes.
   const turnId = turnIdOf(game)
   const [stored, setStored] = useState<Selection & { turnId: string }>({ ...NO_SELECTION, turnId })
 
-  const mode = turnModeOf(game, me, territories)
+  const mode = turnModeOf(game, me, pendingConquest)
   const playerId = me?.id
   const interaction = useMemo(
-    () => interactionFor(mode, territories, infos, playerId),
-    [mode, territories, infos, playerId],
+    () => interactionFor(mode, territories, infos, playerId, pendingConquest),
+    [mode, territories, infos, playerId, pendingConquest],
   )
 
   // The board changes under the selection (troops are lost, territories change owner),
@@ -43,6 +45,8 @@ export function useTurn(
     /** Changes when the turn does. Use as a key for state that belongs to one turn. */
     id: turnId,
     mode,
+    /** The conquest waiting for troops, with how many may move in. Null outside 'conquest'. */
+    pendingConquest: mode === 'conquest' ? pendingConquest : null,
     source: find(selection.sourceId),
     target: find(selection.targetId),
     /** The territories that can be picked as target for the chosen source. */

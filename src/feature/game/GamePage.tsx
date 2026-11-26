@@ -64,12 +64,12 @@ export default function GamePage() {
   const territoryInfos = useTerritoryInfos()
   const continents = useContinents()
   // The board as the player should see it: an attack's result is held back until the dice show it.
-  const attackReveal = useAttackReveal(gameId, board.territories)
+  const attackReveal = useAttackReveal(gameId, board.territories, game.pendingConquest)
   const { territories } = attackReveal
-  const turn = useTurn(game, me, territories, territoryInfos)
+  const turn = useTurn(game, me, territories, territoryInfos, attackReveal.pendingConquest)
   useShareSelection(gameId, turn, connectionStatus)
   const opponentSelection = useOpponentSelection(game, me, territories)
-  const hand = useHand(game, me?.id)
+  const hand = useHand(gameId)
   // The arrows follow the way troops go: through the player's own territories when fortifying.
   const routeOf = (
     sourceId: TerritoryId | null | undefined,
@@ -126,7 +126,6 @@ export default function GamePage() {
               gameId={gameId}
               me={me}
               turn={turn}
-              cardCount={hand.cards.length}
               isRollingDice={attackReveal.isHidingResult}
               names={names}
             />
@@ -146,9 +145,9 @@ export default function GamePage() {
               playerId={me.id}
               cards={hand.cards}
               canTrade={turn.mode === 'deploy'}
-              setsTraded={
-                game.settings?.cardTradeMode === 'Progressive' ? (game.cardSetsTraded ?? 0) : null
-              }
+              mustTrade={me.mustTradeCards}
+              tradeMode={game.settings?.cardTradeMode ?? 'Fixed'}
+              upcomingTradeValues={game.upcomingTradeValues}
               territories={territories}
               names={names}
             />
@@ -177,7 +176,7 @@ export default function GamePage() {
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3">
               {me && isPlaying && (
                 <NewCardsBanner
-                  cards={hand.newCards}
+                  received={hand.newCards}
                   names={names}
                   scale={scale}
                   onDone={hand.dismissNewCards}

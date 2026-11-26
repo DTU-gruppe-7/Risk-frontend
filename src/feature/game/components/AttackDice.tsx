@@ -1,11 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { Player, PlayerId } from '../../map/types'
-import type { DuelDie } from '../rules'
 import {
   IMPACT_MS,
   LEAVE_MS,
   PAIR_DELAY_MS,
   type AttackReveal,
+  type DuelDie,
   type RollStep,
 } from '../useAttackReveal'
 import Die from './Die'
@@ -174,8 +174,14 @@ export default function AttackDice({
           <div className="flex gap-3">
             <TumblingDice count={roll.attackerDiceCount} color={attackerColor} />
           </div>
-          <div className="flex gap-3">
-            <TumblingDice count={roll.defenderDiceCount} color={defenderColor} />
+          <div className="flex min-h-12 gap-3">
+            {/* The server decides the defender's dice, so they only start rolling once it has
+                answered. Keyed by the count, so they start with the right number of faces. */}
+            <TumblingDice
+              key={roll.defenderDiceCount ?? 0}
+              count={roll.defenderDiceCount ?? 0}
+              color={defenderColor}
+            />
           </div>
         </>
       ) : (

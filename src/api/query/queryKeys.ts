@@ -13,5 +13,11 @@ export const queryKeys = {
     // The key of the attack mutation (not a query), so the dice can be shown outside the panel
     // that rolls them (see useAttackRoll).
     battle: (gameId: string) => ['games', 'battle', gameId] as const,
+    // What trading these cards, in this order, would give.
+    tradePreview: (gameId: string, cardIds: string[]) =>
+      ['games', 'trade-preview', gameId, ...cardIds] as const,
+  },
+  rules: {
+    cardTrades: () => ['rules', 'card-trades'] as const,
   },
 }

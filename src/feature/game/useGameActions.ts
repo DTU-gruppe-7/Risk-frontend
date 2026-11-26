@@ -10,7 +10,6 @@ import {
   startGame,
   tradeCards,
 } from './mutations'
-import { defenseDiceFor } from './rules'
 import type { BattleRoundDto, GamePhase } from './types'
 import type { TerritoryState } from '../map/types'
 
@@ -64,11 +63,8 @@ export function useGameActions(gameId: string) {
           const result = await blitz(gameId, territories)
           return { rounds: result.rounds, conquered: result.territoryConquered }
         }
-        const result = await attack(gameId, {
-          ...territories,
-          attackingTroopsCount: dice,
-          defendingTroopsCount: defenseDiceFor(to.units),
-        })
+        // The server decides how many dice the defender rolls.
+        const result = await attack(gameId, { ...territories, attackingTroopsCount: dice })
         return { rounds: [result], conquered: result.territoryConquered }
       },
       onSettled,

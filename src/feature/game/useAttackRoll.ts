@@ -2,7 +2,6 @@ import { useMutationState } from '@tanstack/react-query'
 import { useState } from 'react'
 import { queryKeys } from '../../api/query/queryKeys'
 import type { TerritoryState } from '../map/types'
-import { defenseDiceFor } from './rules'
 import type { BattleRoundDto } from './types'
 import type { BattleReport, BattleVariables } from './useGameActions'
 
@@ -13,7 +12,8 @@ export interface AttackRoll {
   from: TerritoryState
   to: TerritoryState
   attackerDiceCount: number
-  defenderDiceCount: number
+  /** The server decides the defender's dice, so their number is only known once it has answered. */
+  defenderDiceCount: number | undefined
   /** The dice the server rolled; undefined while the roll is on its way. */
   round: BattleRoundDto | undefined
   failed: boolean
@@ -41,13 +41,14 @@ export function useAttackRoll(gameId: string): AttackRoll | undefined {
   const dice = latest?.variables?.dice
   if (!latest?.variables || dice === undefined || latest.submittedAt < openedAt) return undefined
 
+  const round = latest.report?.rounds[0]
   return {
     id: latest.id,
     from: latest.variables.from,
     to: latest.variables.to,
     attackerDiceCount: dice,
-    defenderDiceCount: defenseDiceFor(latest.variables.to.units),
-    round: latest.report?.rounds[0],
+    defenderDiceCount: round?.defenderDice.length,
+    round,
     failed: latest.status === 'error',
   }
 }

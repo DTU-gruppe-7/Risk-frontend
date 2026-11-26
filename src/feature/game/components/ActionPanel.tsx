@@ -1,5 +1,4 @@
 import type { TerritoryNames } from '../../map/types'
-import { FORCED_TRADE_HAND_SIZE } from '../rules'
 import type { PlayerDto } from '../types'
 import { useGameActions } from '../useGameActions'
 import type { Turn } from '../useTurn'
@@ -13,22 +12,13 @@ interface ActionPanelProps {
   gameId: string
   me: PlayerDto
   turn: Turn
-  /** The bonus cards the player holds (see useHand). */
-  cardCount: number
   /** An attack roll is being shown on the map, so its result must not be shown here yet. */
   isRollingDice: boolean
   names: TerritoryNames
 }
 
 /** The controls for what the player can do right now. Shows nothing while they wait. */
-export default function ActionPanel({
-  gameId,
-  me,
-  turn,
-  cardCount,
-  isRollingDice,
-  names,
-}: ActionPanelProps) {
+export default function ActionPanel({ gameId, me, turn, isRollingDice, names }: ActionPanelProps) {
   const actions = useGameActions(gameId)
   const { mode, source, target } = turn
 
@@ -42,7 +32,7 @@ export default function ActionPanel({
           key={source?.stateId}
           available={me.reinforcementTroops}
           territory={source}
-          mustTrade={cardCount >= FORCED_TRADE_HAND_SIZE}
+          mustTrade={me.mustTradeCards}
           names={names}
           deploy={actions.deploy}
           endPhase={actions.endPhase}
@@ -69,6 +59,11 @@ export default function ActionPanel({
           hint="Vælg det territorium, tropperne skal rykke ind fra."
           submitLabel="Ryk ind"
           initial="max"
+          limits={
+            turn.pendingConquest
+              ? { min: turn.pendingConquest.minTroops, max: turn.pendingConquest.maxTroops }
+              : undefined
+          }
           isPending={actions.completeConquest.isPending}
           error={actions.completeConquest.error}
           onMove={(from, to, troops) => actions.completeConquest.mutate({ from, to, troops })}
