@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   check:
-    name: Lint, format og build
+    name: Lint, format, test og build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,6 +30,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run format:check
       - run: npm run lint -- --max-warnings=0
+      - run: npm test
       - run: npm run build
 
   smoke-test:
@@ -65,6 +66,30 @@ jobs:
           for i in $(seq 1 20); do curl -fsS http://localhost:8080/healthz && break; sleep 1; done
           curl -fsS -o /dev/null http://localhost:8080/
           curl -fsS -o /dev/null http://localhost:8080/en/dyb/rute     # SPA-fallback
+
+      - name: Tjek security headers og caching
+        run: |
+          headers() { curl -fsS -o /dev/null -D - "http://localhost:8080$1" | tr -d '\r'; }
+          for path in / /en/dyb/rute; do
+            h="$(headers "$path")"
+            echo "$h" | grep -qi "^content-security-policy: .*frame-ancestors 'none'"
+            echo "$h" | grep -qi '^x-content-type-options: nosniff'
+            echo "$h" | grep -qi '^referrer-policy: strict-origin-when-cross-origin'
+            echo "$h" | grep -qi '^cache-control: no-cache'
+          done
+          asset="$(curl -fsS http://localhost:8080/ | grep -o '/assets/[^"]*\.js' | head -n 1)"
+          h="$(headers "$asset")"
+          echo "$h" | grep -qi '^cache-control: public, max-age=31536000, immutable'
+          echo "$h" | grep -qi '^content-security-policy: '
+
+      - name: Tjek PWA-filer
+        run: |
+          headers() { curl -fsS -o /dev/null -D - "http://localhost:8080$1" | tr -d '\r'; }
+          headers /manifest.webmanifest | grep -qi '^content-type: application/manifest+json'
+          headers /sw.js | grep -qi '^cache-control: no-cache'
+          html="$(curl -fsS http://localhost:8080/)"
+          echo "$html" | grep -q '<html lang="da"'
+          echo "$html" | grep -q 'rel="manifest"'
 
       - name: Container-log ved fejl
         if: failure()

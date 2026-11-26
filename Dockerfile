@@ -19,7 +19,7 @@ RUN npm run build
 # Chainguards nginx-image: kun nginx og dets biblioteker, ingen shell og ingen
 # pakkemanager. Det genbygges dagligt med sikkerhedsrettelser, og Dependabot bumper
 # digestet. Uden shell er der ingen HEALTHCHECK i imaget; /healthz tjekkes udefra.
-FROM cgr.dev/chainguard/nginx:latest@sha256:1d942360cecf98fe7e45c0470b23734b3c62868544380f920d1c1fa9de6e8e27 AS runtime
+FROM cgr.dev/chainguard/nginx:latest@sha256:c1642395cc75f39c931d66d939f7e78cbdf671d6cfd821616632b0639c3c6d63 AS runtime
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # Imaget kører allerede som uid 65532 (nonroot), men det skrives eksplicit, så det er

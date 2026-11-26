@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useRegister } from './useAuth'
+import { isApiError } from '../api/errors'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -43,9 +44,9 @@ export default function RegisterPage() {
         />
         <input
           required
-          minLength={12}
+          minLength={15}
           type="password"
-          placeholder="Adgangskode (mindst 12 tegn)"
+          placeholder="Adgangskode (mindst 15 tegn)"
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -57,11 +58,22 @@ export default function RegisterPage() {
         >
           Opret bruger
         </button>
-        {registerMutation.error && <p className="text-red-400">{registerMutation.error.message}</p>}
+        {registerMutation.error && (
+          <ul className="text-red-400">
+            {errorMessages(registerMutation.error).map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        )}
         <Link to="/login" className="text-center text-stone-300 hover:text-white">
           Har du allerede en bruger? Log ind
         </Link>
       </form>
     </main>
   )
+}
+
+function errorMessages(error: Error): string[] {
+  if (isApiError(error) && error.problem?.errors) return Object.values(error.problem.errors).flat()
+  return [error.message]
 }
