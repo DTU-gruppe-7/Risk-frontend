@@ -12,7 +12,9 @@ interface TurnStatusProps {
   connectionStatus: HubStatus
 }
 
-/** The top bar's view of the turn: whose turn it is, the phase, and how much time is left. */
+/**
+ * The top bar's view of the turn: the round, whose turn it is, the phase, and how much time is left.
+ */
 export default function TurnStatus({ game, me, connectionStatus }: TurnStatusProps) {
   const current = currentPlayerOf(game)
   const isMyTurn = current !== undefined && current.id === me?.id
@@ -20,6 +22,12 @@ export default function TurnStatus({ game, me, connectionStatus }: TurnStatusPro
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {/* The round is 0 until the game has started. */}
+      {game.round > 0 && (
+        <span className="rounded-xl border border-white/10 bg-black/30 px-3 py-1.5 text-sm">
+          Runde <span className="font-semibold tabular-nums">{game.round}</span>
+        </span>
+      )}
       <span
         className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-semibold ${
           isMyTurn

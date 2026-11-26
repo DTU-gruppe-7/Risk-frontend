@@ -46,11 +46,13 @@ export default function PlayerList({ game, me, territories, infos }: PlayerListP
     hasFogOfWar: game.settings?.hasFogOfWar ?? false,
     meId: me?.id,
   }
+  // The server draws the turn order at random, so it is not the order the players come in.
+  const playersInTurnOrder = [...game.players].sort((a, b) => a.turnOrder - b.turnOrder)
 
   return (
     <Panel title="Spillere" badge={<CountBadge>{game.players.length}</CountBadge>}>
       <ul className="flex flex-col gap-1.5 text-sm">
-        {game.players.map((player) => {
+        {playersInTurnOrder.map((player) => {
           const isCurrent = player.id === game.currentPlayerId
 
           return (
