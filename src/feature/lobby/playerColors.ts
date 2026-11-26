@@ -9,3 +9,8 @@ export const PLAYER_COLORS = [
 ] as const
 
 export type PlayerColor = (typeof PLAYER_COLORS)[number]['value']
+
+/** The first colour nobody has taken, or undefined when all are taken. */
+export function firstFreeColor(taken: readonly string[]): PlayerColor | undefined {
+  return PLAYER_COLORS.find((color) => !taken.includes(color.value))?.value
+}

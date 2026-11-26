@@ -49,13 +49,28 @@ export interface GameUpdate {
   territories: TerritoryDto[]
 }
 
+/** A player as the game list sends it: just enough for the lobby. */
+export interface LobbyPlayerDto {
+  /** Player id (not the user id). Used to leave the game. */
+  id: string
+  userId: string
+  color: string
+}
+
 export interface GameSummaryDto {
   id: string
   hostId: string
   state: GameStatus
   playerCount: number
   maxPlayers: number
+  hasFogOfWar: boolean
+  victoryMode: GameVictoryMode
+  blizzardCount: number
+  /** Seconds per turn, 0 = no limit. */
+  turnTimeLimit: number
   createdAt: string
+  /** Sorted by turn order. */
+  players: LobbyPlayerDto[]
 }
 
 /** 'Fixed': a set's value depends on its cards. 'Progressive': each set traded gives more than the last. */
@@ -84,6 +99,8 @@ export interface CreateGameRequest {
   hasMissions?: boolean
   blizzardCount?: number
   victoryMode?: GameVictoryMode
+  /** When set, the host joins with this color in the same request. */
+  color?: string
 }
 
 export interface JoinGameRequest {

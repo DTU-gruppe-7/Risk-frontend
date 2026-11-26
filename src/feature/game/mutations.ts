@@ -26,6 +26,11 @@ export function joinGame(gameId: string, request: JoinGameRequest) {
   return api.post<PlayerDto, JoinGameRequest>(`/api/games/${gameId}/players`, request)
 }
 
+/** Leaves a game that has not started yet. Takes the player id, not the user id. */
+export function leaveGame(gameId: string, playerId: string) {
+  return api.delete(`/api/games/${gameId}/players/${playerId}`)
+}
+
 export function startGame(gameId: string) {
   return api.put<GameDto>(`/api/games/${gameId}/start`)
 }
