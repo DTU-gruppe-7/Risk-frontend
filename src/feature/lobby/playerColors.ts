@@ -13,6 +13,11 @@ export const PLAYER_COLORS = [
 
 export type PlayerColor = (typeof PLAYER_COLORS)[number]['value']
 
+/** The first colour nobody has taken, or undefined when all are taken. */
+export function firstFreeColor(taken: readonly string[]): PlayerColor | undefined {
+  return PLAYER_COLORS.find((color) => !taken.includes(color.value))?.value
+}
+
 /** Whether dark marks, e.g. text or pips, should be drawn on top of a player's colour. */
 export function isLightPlayerColor(color: string) {
   return PLAYER_COLORS.some((option) => option.value === color && option.isLight)

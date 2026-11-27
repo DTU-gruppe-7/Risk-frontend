@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { queryKeys } from '../api/query/queryKeys'
 import { useAuth, useLogout } from '../auth/useAuth'
-import { createGame, joinGame, startGame } from '../feature/game/mutations'
+import { createGame, joinGame, leaveGame, startGame } from '../feature/game/mutations'
 import { gamesQuery, territoriesQuery } from '../feature/game/queries'
-import CreateGamePanel, { type CreateGameInput } from '../feature/lobby/CreateGamePanel'
+import CreateGamePanel from '../feature/lobby/CreateGamePanel'
 import InProgressGamesPanel from '../feature/lobby/InProgressGamesPanel'
 import MapBackdrop from '../feature/map/MapBackdrop'
 import OpenGamesPanel from '../feature/lobby/OpenGamesPanel'
+
+const LOBBY_POLL_INTERVAL_MS = 5000
 
 /** The lobby: the board blurred in the background, with panels to create, join and start games. */
 function App() {
@@ -15,10 +17,17 @@ function App() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const logoutMutation = useLogout()
-  const games = useQuery(gamesQuery())
+  // Poll so games others create, join or start show up without pressing "Opdater".
+  // TanStack Query pauses the polling while the tab is in the background.
+  const games = useQuery({ ...gamesQuery(), refetchInterval: LOBBY_POLL_INTERVAL_MS })
 
   const openGames = games.data?.filter((game) => game.state === 'Lobby') ?? []
-  const inProgressGames = games.data?.filter((game) => game.state === 'InProgress') ?? []
+  // Only started games the user plays in, so "Fortsæt" always leads somewhere they belong.
+  const myInProgressGames =
+    games.data?.filter(
+      (game) =>
+        game.state === 'InProgress' && game.players.some((player) => player.userId === user?.id),
+    ) ?? []
 
   const joinMutation = useMutation({
     mutationFn: ({ gameId, color }: { gameId: string; color: string }) =>
@@ -29,16 +38,19 @@ function App() {
     },
   })
 
+  // One request: the backend creates the game and joins the host with their color together.
   const createMutation = useMutation({
-    mutationFn: async ({ request, color }: CreateGameInput) => {
-      const game = await createGame(request)
-      await joinGame(game.id, { color })
-      return game
-    },
+    mutationFn: createGame,
     onSuccess: async (game) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.games.all() })
       void navigate({ to: '/games/$gameId', params: { gameId: game.id } })
     },
+  })
+
+  const leaveMutation = useMutation({
+    mutationFn: ({ gameId, playerId }: { gameId: string; playerId: string }) =>
+      leaveGame(gameId, playerId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.games.all() }),
   })
 
   const startMutation = useMutation({
@@ -80,7 +92,7 @@ function App() {
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
           <CreateGamePanel
-            onCreate={(input) => createMutation.mutate(input)}
+            onCreate={(request) => createMutation.mutate(request)}
             isPending={createMutation.isPending}
             error={createMutation.error}
           />
@@ -90,15 +102,17 @@ function App() {
               isLoading={games.isLoading}
               isRefreshing={games.isFetching && !games.isLoading}
               loadError={games.error}
-              actionError={joinMutation.error ?? startMutation.error}
+              actionError={joinMutation.error ?? leaveMutation.error ?? startMutation.error}
               currentUserId={user?.id}
               onRefresh={() => void games.refetch()}
               onJoin={(game, color) => joinMutation.mutate({ gameId: game.id, color })}
+              onLeave={(game, playerId) => leaveMutation.mutate({ gameId: game.id, playerId })}
               onStart={(game) => startMutation.mutate(game.id)}
               isJoining={joinMutation.isPending}
+              isLeaving={leaveMutation.isPending}
               isStarting={startMutation.isPending}
             />
-            {!games.isLoading && !games.error && <InProgressGamesPanel games={inProgressGames} />}
+            {!games.isLoading && !games.error && <InProgressGamesPanel games={myInProgressGames} />}
           </div>
         </div>
       </main>

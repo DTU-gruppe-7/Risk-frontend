@@ -2,12 +2,12 @@ import { Link } from '@tanstack/react-router'
 import type { GameSummaryDto } from '../game/types'
 import { Panel } from './ui'
 
-/** Games that have started, so a player can get back into one. */
+/** Started games the user plays in, so they can get back into one. */
 export default function InProgressGamesPanel({ games }: { games: GameSummaryDto[] }) {
   return (
-    <Panel eyebrow="I felten" title="Igangværende spil">
+    <Panel eyebrow="I felten" title="Dine spil">
       {games.length === 0 ? (
-        <p className="text-sm text-stone-400">Der er ingen igangværende spil.</p>
+        <p className="text-sm text-stone-400">Du er ikke med i nogen igangværende spil.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {games.map((game) => (

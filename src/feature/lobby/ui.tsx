@@ -125,30 +125,37 @@ export function ColorPicker({
   value,
   onChange,
   size = 'md',
+  disabledColors = [],
 }: {
   value: string
   onChange: (value: PlayerColor) => void
   size?: 'sm' | 'md'
+  /** Colours other players have taken. Shown faded and cannot be picked. */
+  disabledColors?: readonly string[]
 }) {
   const dot = size === 'sm' ? 'h-6 w-6' : 'h-8 w-8'
   return (
     <div role="radiogroup" aria-label="Farve" className="flex flex-wrap gap-2">
       {PLAYER_COLORS.map((color) => {
-        const selected = color.value === value
+        const taken = disabledColors.includes(color.value)
+        const selected = !taken && color.value === value
         return (
           <button
             key={color.value}
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={color.label}
-            title={color.label}
+            aria-label={taken ? `${color.label} (optaget)` : color.label}
+            title={taken ? `${color.label} er optaget` : color.label}
+            disabled={taken}
             onClick={() => onChange(color.value)}
             style={{ backgroundColor: color.value }}
-            className={`${dot} rounded-full border-2 shadow-inner transition hover:scale-110 ${
-              selected
-                ? 'scale-110 border-amber-100 ring-2 ring-amber-300/70 ring-offset-2 ring-offset-stone-950'
-                : 'border-black/40 opacity-80 hover:opacity-100'
+            className={`${dot} relative rounded-full border-2 shadow-inner transition ${
+              taken
+                ? 'cursor-not-allowed border-black/40 opacity-20'
+                : selected
+                  ? 'scale-110 border-amber-100 ring-2 ring-amber-300/70 ring-offset-2 ring-offset-stone-950'
+                  : 'border-black/40 opacity-80 hover:scale-110 hover:opacity-100'
             }`}
           />
         )
@@ -220,5 +227,17 @@ export function ErrorText({ error }: { error: Error }) {
     <p role="alert" className="mt-3 rounded-lg bg-red-950/60 px-3 py-2 text-sm text-red-200">
       {error.message}
     </p>
+  )
+}
+
+/** A small pill naming a rule that is on, e.g. "Fog of war". */
+export function RuleBadge({ children, title }: { children: ReactNode; title?: string }) {
+  return (
+    <span
+      title={title}
+      className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-stone-300"
+    >
+      {children}
+    </span>
   )
 }

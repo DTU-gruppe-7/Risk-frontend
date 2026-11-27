@@ -17,6 +17,7 @@ import {
   Segmented,
   Toggle,
 } from './ui'
+import { loadLastGameSettings, saveLastGameSettings } from './lastGameSettings'
 import type { PlayerColor } from './playerColors'
 
 const PLAYER_COUNTS = [2, 3, 4, 5, 6].map((n) => ({ value: n, label: String(n) }))
@@ -64,43 +65,40 @@ const TURN_TIMES = [
 
 const MAX_BLIZZARDS = 6
 
-export interface CreateGameInput {
-  request: CreateGameRequest
-  color: PlayerColor
-}
-
 export default function CreateGamePanel({
   onCreate,
   isPending,
   error,
 }: {
-  onCreate: (input: CreateGameInput) => void
+  onCreate: (request: CreateGameRequest) => void
   isPending: boolean
   error: Error | null
 }) {
-  const [maxPlayers, setMaxPlayers] = useState(4)
-  const [color, setColor] = useState<PlayerColor>('red')
-  const [victoryMode, setVictoryMode] = useState<GameVictoryMode>('CompleteConquest')
-  const [cardTradeMode, setCardTradeMode] = useState<CardTradeMode>('Fixed')
+  // Start from what this browser used last time. Read once, on the first render.
+  const [initial] = useState(loadLastGameSettings)
+  const [maxPlayers, setMaxPlayers] = useState(initial.maxPlayers)
+  const [color, setColor] = useState<PlayerColor>(initial.color)
+  const [victoryMode, setVictoryMode] = useState<GameVictoryMode>(initial.victoryMode)
+  const [cardTradeMode, setCardTradeMode] = useState<CardTradeMode>(initial.cardTradeMode)
   const { data: cardTradeRules } = useQuery(cardTradeRulesQuery())
-  const [hasFogOfWar, setHasFogOfWar] = useState(false)
-  const [blizzardCount, setBlizzardCount] = useState(0)
-  const [turnTimeLimit, setTurnTimeLimit] = useState(0)
+  const [hasFogOfWar, setHasFogOfWar] = useState(initial.hasFogOfWar)
+  const [blizzardCount, setBlizzardCount] = useState(initial.blizzardCount)
+  const [turnTimeLimit, setTurnTimeLimit] = useState(initial.turnTimeLimit)
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    onCreate({
+    const settings = {
+      maxPlayers,
       color,
-      request: {
-        maxPlayers,
-        victoryMode,
-        hasMissions: victoryMode === 'Mission',
-        cardTradeMode,
-        hasFogOfWar,
-        blizzardCount,
-        turnTimeLimit,
-      },
-    })
+      victoryMode,
+      cardTradeMode,
+      hasFogOfWar,
+      blizzardCount,
+      turnTimeLimit,
+    }
+    saveLastGameSettings(settings)
+    // The host's color goes with the create, so the backend joins them in the same save.
+    onCreate({ ...settings, hasMissions: victoryMode === 'Mission' })
   }
 
   return (
