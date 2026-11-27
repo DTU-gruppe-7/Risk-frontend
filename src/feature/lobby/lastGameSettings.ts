@@ -1,4 +1,4 @@
-import type { GameVictoryMode } from '../game/types'
+import type { CardTradeMode, GameVictoryMode } from '../game/types'
 import { PLAYER_COLORS, type PlayerColor } from './playerColors'
 
 /** The choices in "Opret et spil", remembered in this browser between visits. */
@@ -6,6 +6,7 @@ export interface GameSettingsDraft {
   maxPlayers: number
   color: PlayerColor
   victoryMode: GameVictoryMode
+  cardTradeMode: CardTradeMode
   hasFogOfWar: boolean
   blizzardCount: number
   turnTimeLimit: number
@@ -15,6 +16,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettingsDraft = {
   maxPlayers: 4,
   color: 'red',
   victoryMode: 'CompleteConquest',
+  cardTradeMode: 'Fixed',
   hasFogOfWar: false,
   blizzardCount: 0,
   turnTimeLimit: 0,
@@ -46,6 +48,10 @@ export function loadLastGameSettings(): GameSettingsDraft {
       saved.victoryMode === 'Mission' || saved.victoryMode === 'CompleteConquest'
         ? saved.victoryMode
         : d.victoryMode,
+    cardTradeMode:
+      saved.cardTradeMode === 'Fixed' || saved.cardTradeMode === 'Progressive'
+        ? saved.cardTradeMode
+        : d.cardTradeMode,
     hasFogOfWar: typeof saved.hasFogOfWar === 'boolean' ? saved.hasFogOfWar : d.hasFogOfWar,
     blizzardCount: intInRange(saved.blizzardCount, 0, 6) ?? d.blizzardCount,
     turnTimeLimit: intInRange(saved.turnTimeLimit, 0, 3600) ?? d.turnTimeLimit,

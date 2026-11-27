@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { queryKeys } from '../api/query/queryKeys'
-import { useAuth } from '../auth/useAuth'
+import { useAuth, useLogout } from '../auth/useAuth'
 import { createGame, joinGame, leaveGame, startGame } from '../feature/game/mutations'
 import { gamesQuery, territoriesQuery } from '../feature/game/queries'
 import CreateGamePanel from '../feature/lobby/CreateGamePanel'
 import InProgressGamesPanel from '../feature/lobby/InProgressGamesPanel'
-import MapBackdrop from '../feature/lobby/MapBackdrop'
+import MapBackdrop from '../feature/map/MapBackdrop'
 import OpenGamesPanel from '../feature/lobby/OpenGamesPanel'
 
 const LOBBY_POLL_INTERVAL_MS = 5000
@@ -16,6 +16,7 @@ function App() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const logoutMutation = useLogout()
   // Poll so games others create, join or start show up without pressing "Opdater".
   // TanStack Query pauses the polling while the tab is in the background.
   const games = useQuery({ ...gamesQuery(), refetchInterval: LOBBY_POLL_INTERVAL_MS })
@@ -77,6 +78,14 @@ function App() {
           {user && (
             <p className="mt-3 text-stone-300">
               Velkommen, <span className="font-medium text-amber-100">{user.userName}</span>
+              <button
+                type="button"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+                className="ml-3 text-sm text-stone-400 underline hover:text-white disabled:opacity-50"
+              >
+                Log ud
+              </button>
             </p>
           )}
         </header>

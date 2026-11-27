@@ -2,15 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { TerritoryInfo, TerritoryState } from '../map/types'
 import {
   interactionFor,
-  isValidCardSet,
   NO_SELECTION,
-  progressiveTradeValue,
   resolveSelection,
   selectTerritory,
-  tradeValueOf,
   turnModeOf,
 } from './rules'
-import type { BonusCardDto, BonusCardType, GameDto, PlayerDto } from './types'
+import type { GameDto, PendingConquestDto, PlayerDto } from './types'
 
 const ME = 'me'
 const ENEMY = 'enemy'
@@ -43,43 +40,36 @@ function game(overrides: Partial<GameDto> = {}): GameDto {
   } as GameDto
 }
 
-function cards(...types: BonusCardType[]): BonusCardDto[] {
-  return types.map((type, index) => ({
-    id: String(index),
-    playerId: ME,
-    type,
-    territoryIdentifier: null,
-    used: false,
-  }))
+/** The server's conquest that waits for troops to be moved in. The test board's state ids are the map ids. */
+function conquest(fromTerritoryId: string, toTerritoryId: string): PendingConquestDto {
+  return { fromTerritoryId, toTerritoryId, minTroops: 1, maxTroops: 2 }
 }
 
 describe('turnModeOf', () => {
-  const board = [territory('a', ME, 3), territory('b', ENEMY, 2)]
-
   it('is waiting when it is not my turn, the game is not running, or I am not playing', () => {
-    expect(turnModeOf(game({ currentPlayerId: ENEMY }), me, board)).toBe('waiting')
-    expect(turnModeOf(game({ state: 'Lobby' }), me, board)).toBe('waiting')
-    expect(turnModeOf(game(), undefined, board)).toBe('waiting')
+    expect(turnModeOf(game({ currentPlayerId: ENEMY }), me, null)).toBe('waiting')
+    expect(turnModeOf(game({ state: 'Lobby' }), me, null)).toBe('waiting')
+    expect(turnModeOf(game(), undefined, null)).toBe('waiting')
   })
 
   it('follows the phase when it is my turn', () => {
-    expect(turnModeOf(game({ currentPhase: 'Deployment' }), me, board)).toBe('deploy')
-    expect(turnModeOf(game({ currentPhase: 'Attack' }), me, board)).toBe('attack')
-    expect(turnModeOf(game({ currentPhase: 'Fortify' }), me, board)).toBe('fortify')
+    expect(turnModeOf(game({ currentPhase: 'Deployment' }), me, null)).toBe('deploy')
+    expect(turnModeOf(game({ currentPhase: 'Attack' }), me, null)).toBe('attack')
+    expect(turnModeOf(game({ currentPhase: 'Fortify' }), me, null)).toBe('fortify')
   })
 
-  it('is conquest while a conquered territory has no troops yet', () => {
-    expect(turnModeOf(game(), me, [...board, territory('c', ME, 0)])).toBe('conquest')
+  it('is conquest while the server waits for troops to be moved in', () => {
+    expect(turnModeOf(game(), me, conquest('a', 'b'))).toBe('conquest')
   })
 
-  it('does not count a blizzard as a conquered territory', () => {
-    expect(turnModeOf(game(), me, [...board, territory('c', ENEMY, 0, true)])).toBe('attack')
+  it('is waiting during a conquest that is not mine', () => {
+    expect(turnModeOf(game({ currentPlayerId: ENEMY }), me, conquest('a', 'b'))).toBe('waiting')
   })
 })
 
 describe('interactionFor', () => {
   it('offers nothing while waiting', () => {
-    const interaction = interactionFor('waiting', [territory('a', ME, 5)], INFOS, ME)
+    const interaction = interactionFor('waiting', [territory('a', ME, 5)], INFOS, ME, null)
     expect(interaction.sources).toEqual([])
   })
 
@@ -91,7 +81,7 @@ describe('interactionFor', () => {
       territory('d', ENEMY, 1),
       territory('e', ME, 2), // only borders my own territory
     ]
-    const interaction = interactionFor('attack', board, INFOS, ME)
+    const interaction = interactionFor('attack', board, INFOS, ME, null)
 
     expect(interaction.sources).toEqual(['a'])
     expect(interaction.targetsOf('a')).toEqual(['b'])
@@ -99,7 +89,7 @@ describe('interactionFor', () => {
 
   it('never attacks into a blizzard', () => {
     const board = [territory('a', ME, 3), territory('b', ENEMY, 2, true), territory('e', ENEMY, 1)]
-    const interaction = interactionFor('attack', board, INFOS, ME)
+    const interaction = interactionFor('attack', board, INFOS, ME, null)
 
     expect(interaction.targetsOf('a')).toEqual(['e'])
   })
@@ -112,30 +102,42 @@ describe('interactionFor', () => {
       territory('d', ENEMY, 1),
       territory('e', ME, 1),
     ]
-    const interaction = interactionFor('fortify', board, INFOS, ME)
+    const interaction = interactionFor('fortify', board, INFOS, ME, null)
 
     expect(interaction.targetsOf('a').sort()).toEqual(['b', 'c', 'e'])
   })
 
   it('does not fortify through an enemy territory', () => {
     const board = [territory('a', ME, 3), territory('b', ENEMY, 1), territory('c', ME, 1)]
-    const interaction = interactionFor('fortify', board, INFOS, ME)
+    const interaction = interactionFor('fortify', board, INFOS, ME, null)
 
     expect(interaction.sources).toEqual([])
   })
 
-  it('moves into a conquered territory and picks the only choice by itself', () => {
+  it('moves into the conquered territory the server names and picks it by itself', () => {
     const board = [territory('a', ME, 3), territory('b', ME, 0), territory('c', ENEMY, 2)]
-    const interaction = interactionFor('conquest', board, INFOS, ME)
+    const interaction = interactionFor('conquest', board, INFOS, ME, conquest('a', 'b'))
 
     expect(interaction.autoSelect).toBe(true)
     expect(resolveSelection(NO_SELECTION, interaction)).toEqual({ sourceId: 'a', targetId: 'b' })
+  })
+
+  it('offers nothing for a conquest of territories that are not on the board', () => {
+    const interaction = interactionFor(
+      'conquest',
+      [territory('a', ME, 3)],
+      INFOS,
+      ME,
+      conquest('a', 'x'),
+    )
+
+    expect(interaction.sources).toEqual([])
   })
 })
 
 describe('selecting territories', () => {
   const board = [territory('a', ME, 3), territory('b', ENEMY, 2), territory('e', ME, 4)]
-  const interaction = interactionFor('attack', board, INFOS, ME)
+  const interaction = interactionFor('attack', board, INFOS, ME, null)
 
   it('picks a source, then a target', () => {
     const withSource = selectTerritory(NO_SELECTION, 'a', interaction)
@@ -156,38 +158,8 @@ describe('selecting territories', () => {
       [territory('a', ME, 1), territory('b', ENEMY, 2)],
       INFOS,
       ME,
+      null,
     )
     expect(resolveSelection({ sourceId: 'a', targetId: 'b' }, after)).toEqual(NO_SELECTION)
-  })
-})
-
-describe('card sets', () => {
-  it('accepts three alike, three different or a set with a wild card', () => {
-    expect(isValidCardSet(cards('Infantry', 'Infantry', 'Infantry'))).toBe(true)
-    expect(isValidCardSet(cards('Infantry', 'Cavalry', 'Artillery'))).toBe(true)
-    expect(isValidCardSet(cards('Infantry', 'Infantry', 'Wild'))).toBe(true)
-  })
-
-  it('rejects two alike and one different, and sets that are not three cards', () => {
-    expect(isValidCardSet(cards('Infantry', 'Infantry', 'Cavalry'))).toBe(false)
-    expect(isValidCardSet(cards('Infantry', 'Infantry'))).toBe(false)
-  })
-
-  it('gives the classic fixed values, whatever the order of the cards', () => {
-    expect(tradeValueOf(cards('Infantry', 'Infantry', 'Infantry'))).toBe(4)
-    expect(tradeValueOf(cards('Cavalry', 'Cavalry', 'Cavalry'))).toBe(6)
-    expect(tradeValueOf(cards('Artillery', 'Artillery', 'Artillery'))).toBe(8)
-    expect(tradeValueOf(cards('Artillery', 'Infantry', 'Cavalry'))).toBe(10)
-  })
-
-  it('leaves the value to the backend for wild cards and invalid sets', () => {
-    expect(tradeValueOf(cards('Infantry', 'Infantry', 'Wild'))).toBeNull()
-    expect(tradeValueOf(cards('Infantry', 'Infantry', 'Cavalry'))).toBeNull()
-  })
-
-  it('rises 4, 6, 8, 10, 12, 15 and then by 5 under the progressive bonus', () => {
-    expect([0, 1, 2, 3, 4, 5, 6, 7].map(progressiveTradeValue)).toEqual([
-      4, 6, 8, 10, 12, 15, 20, 25,
-    ])
   })
 })

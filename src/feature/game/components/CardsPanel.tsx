@@ -1,222 +1,172 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import TerritoryShape from '../../map/TerritoryShape'
 import type { TerritoryNames, TerritoryState } from '../../map/types'
-import { handQuery } from '../queries'
-import {
-  CARD_TYPE_NAMES,
-  CARDS_PER_TRADE,
-  FORCED_TRADE_HAND_SIZE,
-  isValidCardSet,
-  progressiveTradeValue,
-  TRADE_SETS,
-  tradeValueOf,
-} from '../rules'
-import type { BonusCardDto, BonusCardType } from '../types'
+import { cardTradeRulesQuery, tradePreviewQuery } from '../queries'
+import type { BonusCardDto, CardTradeMode } from '../types'
 import { useTradeCards } from '../useGameActions'
-import CardIcon from './CardIcon'
-import { Button, ErrorText, Hint, Panel } from './ui'
+import BonusCardFace from './BonusCardFace'
+import TradeSetsInfo from './TradeSetsInfo'
+import { Button, CountBadge, ErrorText, Hint, Panel } from './ui'
 
 interface CardsPanelProps {
   gameId: string
   playerId: string
+  /** The cards the player holds (see useHand). */
+  cards: BonusCardDto[]
   /** Cards can only be traded in the player's own Deployment phase. */
   canTrade: boolean
-  /**
-   * Card sets traded in the game so far when the card bonus is progressive, or null when the
-   * bonus is fixed and depends on the cards in the set.
-   */
-  setsTraded: number | null
-  /** Used to see which of the cards show a territory the player holds. */
+  /** The server will not let the player go on before they have traded. */
+  mustTrade: boolean
+  tradeMode: CardTradeMode
+  /** What the next trades give with the progressive bonus (from the game). */
+  upcomingTradeValues: number[]
+  /** Used to see which cards show a territory the player holds, and to name territories. */
   territories: TerritoryState[]
   names: TerritoryNames
 }
 
-const MAX_CARDS_PER_ROW = 5
+/** The panel sits in the narrow side bar, so two cards fit side by side. */
+const CARDS_PER_ROW = 2
 
-/** The trades shown when the bonus is progressive: the next one in the game, and the two after it. */
-const UPCOMING_TRADES = ['Nu', 'Næste', 'Derefter']
-
-/** What a set is called in the list of what each set gives. */
-function setName(types: BonusCardType[]) {
-  const [first] = types
-  return types.every((type) => type === first) ? CARD_TYPE_NAMES[first] : 'Én af hver'
-}
-
-/** The player's bonus cards, and trading three of them for extra troops. */
+/**
+ * The player's bonus cards, and trading a set of them for extra troops. What a set gives and which
+ * card gives the bonus for a territory the player holds is asked of the server (a trade preview).
+ */
 export default function CardsPanel(props: CardsPanelProps) {
-  const { gameId, playerId, canTrade, setsTraded, territories, names } = props
-  const { data: cards = [] } = useQuery(handQuery(gameId, playerId))
+  const { gameId, playerId, cards, canTrade, mustTrade, territories, names } = props
   const trade = useTradeCards(gameId)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const { data: rules } = useQuery(cardTradeRulesQuery())
+  // In the order picked: the order decides which card gives the bonus, as in the real trade.
+  const [pickedIds, setPickedIds] = useState<string[]>([])
 
   // Cards leave the hand when they are traded, so only count the ones still in it.
-  const selected = cards.filter((card) => selectedIds.includes(card.id))
-  const isValidSet = isValidCardSet(selected)
-  // With a progressive bonus every valid set gives the same, whatever cards are in it.
-  const value =
-    setsTraded === null
-      ? tradeValueOf(selected)
-      : isValidSet
-        ? progressiveTradeValue(setsTraded)
-        : null
-  const canRedeem = canTrade && isValidSet
+  const selected = pickedIds
+    .map((id) => cards.find((card) => card.id === id))
+    .filter((card) => card !== undefined)
+  const selectedIds = selected.map((card) => card.id)
+  const isFull = rules !== undefined && selected.length >= rules.cardsPerTrade
+  const { data: preview } = useQuery({
+    ...tradePreviewQuery(gameId, selectedIds),
+    enabled: rules !== undefined && selected.length === rules.cardsPerTrade,
+  })
+  const canRedeem = canTrade && preview?.isValid === true
 
-  // Trading a card with a territory the player holds puts one extra troop on that territory.
+  const territoryOf = (stateId: string | null | undefined) =>
+    territories.find((territory) => territory.stateId === stateId)
+  const nameOf = (territoryId: string) => names[territoryId] ?? territoryId
+  // A card showing a territory the player holds may give extra troops on it when traded.
   const ownedIds = new Set(
     territories.filter((territory) => territory.ownerId === playerId).map((t) => t.territoryId),
   )
-  const givesBonus = (card: BonusCardDto) =>
+  const showsOwnedTerritory = (card: BonusCardDto) =>
     card.territoryIdentifier !== null && ownedIds.has(card.territoryIdentifier)
-  // Only one card per trade gives the extra troop: the first of the traded cards that can.
-  const bonusCard = selected.find(givesBonus)
+  // The server says which territory a trade of the picked cards gives the extra troops on.
+  const bonusTerritory = preview?.isValid ? territoryOf(preview.bonusTerritoryId) : undefined
+  const bonusCard = selected.find(
+    (card) => card.territoryIdentifier === bonusTerritory?.territoryId,
+  )
+  const tradedBonusTerritory = territoryOf(trade.data?.bonusTerritoryId)
 
   function toggle(card: BonusCardDto) {
-    const ids = selected.map((other) => other.id)
-    setSelectedIds(ids.includes(card.id) ? ids.filter((id) => id !== card.id) : [...ids, card.id])
+    setPickedIds(
+      selectedIds.includes(card.id)
+        ? selectedIds.filter((id) => id !== card.id)
+        : [...selectedIds, card.id],
+    )
   }
 
   return (
-    <Panel title={`Kort (${cards.length})`}>
+    <Panel title="Kort" badge={<CountBadge>{cards.length}</CountBadge>}>
       {cards.length === 0 && (
-        <Hint>
-          Erobrer du et territorium i din tur, får du et kort, når du afslutter angrebsfasen.
-        </Hint>
+        <Hint>Erobrer du et territorium i din tur, får du et kort, når din tur er slut.</Hint>
       )}
-      {/* Fixed card widths, so the panel is exactly as wide as the cards in it need. */}
       <ul
-        className="grid justify-center gap-3"
-        style={{
-          gridTemplateColumns: `repeat(${Math.min(Math.max(cards.length, 1), MAX_CARDS_PER_ROW)}, 7rem)`,
-        }}
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${CARDS_PER_ROW}, minmax(0, 1fr))` }}
       >
         {cards.map((card) => {
           const isSelected = selectedIds.includes(card.id)
-          // Another card in the set already gives the one extra troop of this trade.
+          // The trade gives the extra troops on another card's territory, not this one's.
           const bonusIsUsed = isSelected && bonusCard !== undefined && bonusCard !== card
           return (
             <li key={card.id}>
               <button
                 type="button"
                 aria-pressed={isSelected}
-                disabled={!isSelected && selected.length >= CARDS_PER_TRADE}
+                disabled={!isSelected && isFull}
                 onClick={() => toggle(card)}
-                className={`relative flex aspect-[3/4] w-full flex-col items-center justify-end gap-1 rounded-lg border p-2 disabled:opacity-50 ${
-                  isSelected
-                    ? 'border-emerald-400 bg-emerald-900/60'
-                    : 'border-stone-600 bg-stone-700 hover:bg-stone-600'
-                }`}
+                className="block w-full rounded-lg transition hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
               >
-                {givesBonus(card) && (
-                  <span
-                    title={
-                      bonusIsUsed
-                        ? 'Kun ét kort pr. bytte giver en ekstra trop'
-                        : 'Du ejer territoriet og får 1 ekstra trop på det ved bytte'
-                    }
-                    className={`absolute top-2 right-2 rounded-full px-2 text-sm font-bold ${
-                      bonusIsUsed
-                        ? 'bg-stone-600 text-stone-400 line-through'
-                        : 'bg-emerald-600 text-white'
-                    }`}
-                  >
-                    +1
-                  </span>
-                )}
-                {card.territoryIdentifier ? (
-                  <>
-                    <CardIcon type={card.type} className="absolute top-2 left-2 h-7 w-7" />
-                    <TerritoryShape
-                      id={card.territoryIdentifier}
-                      className="min-h-0 w-full flex-1 px-2 pt-8 text-stone-300"
-                    />
-                  </>
-                ) : (
-                  <span className="grid min-h-0 flex-1 place-items-center">
-                    <CardIcon type={card.type} className="h-16 w-16" />
-                  </span>
-                )}
-                <span className="line-clamp-2 text-center text-sm leading-tight font-semibold text-stone-200">
-                  {card.territoryIdentifier
-                    ? (names[card.territoryIdentifier] ?? card.territoryIdentifier)
-                    : CARD_TYPE_NAMES[card.type]}
-                </span>
+                <BonusCardFace
+                  card={card}
+                  names={names}
+                  className={
+                    isSelected
+                      ? 'border-amber-300 bg-amber-300/15 ring-2 ring-amber-300/40'
+                      : 'border-white/10 bg-white/5 hover:border-white/25'
+                  }
+                >
+                  {rules && showsOwnedTerritory(card) && (
+                    <span
+                      title={
+                        bonusIsUsed
+                          ? 'Et andet af kortene giver de ekstra tropper ved dette bytte'
+                          : `Du ejer territoriet og kan få ${rules.ownedTerritoryBonus} ekstra tropper på det ved bytte`
+                      }
+                      className={`absolute top-2 right-2 rounded-full px-2 text-sm font-bold ${
+                        bonusIsUsed
+                          ? 'bg-stone-700 text-stone-400 line-through'
+                          : 'bg-emerald-500 text-stone-950'
+                      }`}
+                    >
+                      +{rules.ownedTerritoryBonus}
+                    </span>
+                  )}
+                </BonusCardFace>
               </button>
             </li>
           )
         })}
       </ul>
-      {cards.length >= FORCED_TRADE_HAND_SIZE && (
-        <Hint>Med {FORCED_TRADE_HAND_SIZE} eller flere kort skal du bytte i din næste tur.</Hint>
+      {mustTrade && (
+        <Hint>Du har for mange kort og skal indløse et sæt, før du kan fortsætte.</Hint>
       )}
-      {/* Always shown, and grey until three cards that make a set are picked. */}
+      {/* Always shown, and grey until the picked cards make a set the server accepts. */}
       <Button
         variant={canRedeem ? 'primary' : 'secondary'}
         disabled={!canRedeem || trade.isPending}
-        onClick={() => trade.mutate(selected.map((card) => card.id))}
+        onClick={() => trade.mutate(selectedIds)}
       >
-        Indløs{value !== null && ` for ${value} tropper`}
+        Indløs{preview?.isValid && preview.troops !== null && ` for ${preview.troops} tropper`}
       </Button>
-      {isValidSet && !canTrade && <Hint>Du kan kun indløse i din egen forstærkningsfase.</Hint>}
-      {bonusCard?.territoryIdentifier && (
+      {preview && !preview.isValid && <Hint>De valgte kort er ikke et gyldigt sæt.</Hint>}
+      {preview?.isValid && !canTrade && (
+        <Hint>Du kan kun indløse i din egen forstærkningsfase.</Hint>
+      )}
+      {preview?.isValid && bonusTerritory && preview.bonusTroops > 0 && (
         <Hint>
-          +1 trop på {names[bonusCard.territoryIdentifier] ?? bonusCard.territoryIdentifier}, fordi
-          du ejer territoriet.
+          {preview.bonusTroops} ekstra tropper på {nameOf(bonusTerritory.territoryId)}, fordi du
+          ejer territoriet.
         </Hint>
       )}
-      {trade.data && <Hint>Du fik {trade.data.troopsAwarded} tropper for dine kort.</Hint>}
+      {trade.data && (
+        <Hint>
+          Du fik {trade.data.troopsAwarded} tropper for dine kort
+          {tradedBonusTerritory &&
+            trade.data.bonusTroops > 0 &&
+            ` og ${trade.data.bonusTroops} ekstra på ${nameOf(tradedBonusTerritory.territoryId)}`}
+          .
+        </Hint>
+      )}
       <ErrorText error={trade.error} />
 
-      <div className="flex flex-col gap-1 border-t border-stone-700 pt-2">
-        <h3 className="text-xs font-semibold tracking-wide text-stone-400 uppercase">
-          Et sæt giver
-        </h3>
-        {setsTraded === null ? (
-          <ul className="flex flex-col gap-1 text-sm">
-            {TRADE_SETS.map((set) => (
-              <li key={set.types.join()} className="flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  {set.types.map((type, index) => (
-                    <CardIcon key={index} type={type} className="h-5 w-5" />
-                  ))}
-                  <span className="ml-1 text-stone-300">{setName(set.types)}</span>
-                </span>
-                <span>
-                  <span className="font-semibold tabular-nums">{set.troops}</span> tropper
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <>
-            <ol className="grid grid-cols-3 gap-2 text-center">
-              {UPCOMING_TRADES.map((label, index) => (
-                <li
-                  key={label}
-                  className={`flex flex-col rounded px-1 py-1 ${
-                    index === 0 ? 'bg-emerald-800' : 'bg-stone-700'
-                  }`}
-                >
-                  <span className="text-lg leading-tight font-bold tabular-nums">
-                    {progressiveTradeValue(setsTraded + index)}
-                  </span>
-                  <span className="text-xs text-stone-300">{label}</span>
-                </li>
-              ))}
-            </ol>
-            <p className="text-xs text-stone-400">
-              Bonussen stiger, hver gang en spiller indløser. Alle gyldige sæt giver det samme.
-            </p>
-          </>
-        )}
-        <p className="flex items-center gap-1 text-xs text-stone-400">
-          <CardIcon type="Wild" className="h-4 w-4 shrink-0" />
-          Jokeren kan erstatte et hvilket som helst kort.
-        </p>
-        <p className="text-xs text-stone-400">
-          Ejer du territoriet på et af kortene, får du 1 ekstra trop på det. Højst én pr. bytte.
-        </p>
-      </div>
+      {rules && (
+        <TradeSetsInfo
+          rules={rules}
+          tradeMode={props.tradeMode}
+          upcomingTradeValues={props.upcomingTradeValues}
+        />
+      )}
     </Panel>
   )
 }

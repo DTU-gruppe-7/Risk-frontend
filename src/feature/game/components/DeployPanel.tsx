@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { TerritoryNames, TerritoryState } from '../../map/types'
+import { troopWord } from '../troopWord'
 import type { GameActions } from '../useGameActions'
-import { ActionBox, Button, ErrorText, Hint } from './ui'
+import { ActionBox, Button, ErrorText, Hint, SectionHeading, TroopPicker } from './ui'
 
 interface DeployPanelProps {
   /** Troops the player still has to place. */
@@ -14,9 +15,6 @@ interface DeployPanelProps {
   endPhase: GameActions['endPhase']
 }
 
-const STEP_BUTTON =
-  'grid h-7 w-7 shrink-0 place-items-center rounded-full bg-stone-700 text-base leading-none hover:bg-stone-600 disabled:opacity-40'
-
 export default function DeployPanel(props: DeployPanelProps) {
   const { available, territory, mustTrade, names, deploy, endPhase } = props
   const [wanted, setWanted] = useState(1)
@@ -26,14 +24,12 @@ export default function DeployPanel(props: DeployPanelProps) {
   return (
     <ActionBox>
       <header className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-700 text-lg font-bold tabular-nums ring-2 ring-emerald-400/40">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-linear-to-b from-amber-300 to-amber-600 text-lg font-bold text-stone-950 tabular-nums shadow-lg ring-2 shadow-amber-900/40 ring-amber-200/30">
           {available}
         </span>
         <div className="min-w-0">
-          <h2 className="text-xs font-semibold tracking-wide text-stone-400 uppercase">
-            Forstærkning
-          </h2>
-          <p className="truncate font-semibold">
+          <SectionHeading>Forstærkning</SectionHeading>
+          <p className="truncate font-serif text-base text-amber-50">
             {canPlace && territory
               ? (names[territory.territoryId] ?? territory.territoryId)
               : 'tropper at placere'}
@@ -49,48 +45,20 @@ export default function DeployPanel(props: DeployPanelProps) {
         <Button size="sm" disabled={endPhase.isPending} onClick={() => endPhase.mutate('Attack')}>
           Gå til angreb
         </Button>
+      ) : // Placing starts on the map, so the box says what to click until a territory is picked.
+      territory ? (
+        <>
+          <TroopPicker label="Antal tropper" max={available} value={troops} onChange={setWanted} />
+          <Button
+            size="sm"
+            disabled={deploy.isPending}
+            onClick={() => deploy.mutate({ territory, troops })}
+          >
+            Placér {troops} {troopWord(troops)}
+          </Button>
+        </>
       ) : (
-        territory && (
-          <>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Færre tropper"
-                className={STEP_BUTTON}
-                disabled={troops <= 1}
-                onClick={() => setWanted(troops - 1)}
-              >
-                −
-              </button>
-              <input
-                type="range"
-                aria-label="Antal tropper"
-                className="min-w-0 flex-1 accent-emerald-500"
-                min={1}
-                max={available}
-                value={troops}
-                disabled={available <= 1}
-                onChange={(event) => setWanted(Number(event.target.value))}
-              />
-              <button
-                type="button"
-                aria-label="Flere tropper"
-                className={STEP_BUTTON}
-                disabled={troops >= available}
-                onClick={() => setWanted(troops + 1)}
-              >
-                +
-              </button>
-            </div>
-            <Button
-              size="sm"
-              disabled={deploy.isPending}
-              onClick={() => deploy.mutate({ territory, troops })}
-            >
-              Placér {troops} {troops === 1 ? 'troppe' : 'tropper'}
-            </Button>
-          </>
-        )
+        <Hint>Klik på et af dine territorier for at placere tropper.</Hint>
       )}
       <ErrorText error={deploy.error ?? endPhase.error} />
     </ActionBox>

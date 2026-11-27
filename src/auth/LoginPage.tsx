@@ -27,7 +27,7 @@ export default function LoginPage() {
         <h1 className="text-xl">Log ind</h1>
         <input
           type="email"
-          placeholder="Email"
+          placeholder="E-mail"
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -35,7 +35,7 @@ export default function LoginPage() {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Adgangskode"
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

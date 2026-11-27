@@ -3,14 +3,15 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../auth/useAuth'
 import { gameHub } from '../../realtime/gameHub'
 import { useHubGroup } from '../../realtime/useHubGroup'
-import { gameQuery, territoriesQuery } from './queries'
+import { gameQuery, handQuery, territoriesQuery } from './queries'
 
 /**
  * Connects to the game hub, watches the game and writes pushed updates into
  * the TanStack cache. Returns the connection status.
  *
  * The server sends the current state on every join (also after a reconnect), and
- * after that the new state on every change, already filtered for fog of war.
+ * after that the new state on every change, already filtered for fog of war. The hand is not part
+ * of it, and new cards pushed while we were away are not sent again, so it is fetched on every join.
  */
 export function useGameHub(gameId: string) {
   const queryClient = useQueryClient()
@@ -32,7 +33,10 @@ export function useGameHub(gameId: string) {
   return useHubGroup(gameHub, {
     key: gameId,
     enabled: isAuthenticated,
-    join: () => gameHub.invoke('JoinGame', gameId),
+    join: async () => {
+      await gameHub.invoke('JoinGame', gameId)
+      void queryClient.invalidateQueries({ queryKey: handQuery(gameId).queryKey })
+    },
     leave: () => gameHub.invoke('LeaveGame', gameId),
   })
 }
