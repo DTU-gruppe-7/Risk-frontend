@@ -1,6 +1,22 @@
 import { useState, type FormEvent } from 'react'
-import type { CreateGameRequest, GameVictoryMode } from '../game/types'
-import { ColorPicker, ErrorText, FieldLabel, Panel, PrimaryButton, Segmented, Toggle } from './ui'
+import { useQuery } from '@tanstack/react-query'
+import { cardTradeRulesQuery } from '../game/queries'
+import type {
+  CardTradeMode,
+  CardTradeRulesResponse,
+  CreateGameRequest,
+  GameVictoryMode,
+} from '../game/types'
+import {
+  ChoiceCards,
+  ColorPicker,
+  ErrorText,
+  FieldLabel,
+  Panel,
+  PrimaryButton,
+  Segmented,
+  Toggle,
+} from './ui'
 import type { PlayerColor } from './playerColors'
 
 const PLAYER_COUNTS = [2, 3, 4, 5, 6].map((n) => ({ value: n, label: String(n) }))
@@ -9,6 +25,35 @@ const VICTORY_MODES: { value: GameVictoryMode; title: string; description: strin
   { value: 'CompleteConquest', title: 'Total erobring', description: 'Erobr hele verden' },
   { value: 'Mission', title: 'Hemmelige missioner', description: 'Hver spiller får et mål' },
 ]
+
+/** How many of the first progressive values to show in the explanation. */
+const SHOWN_PROGRESSIVE_VALUES = 4
+
+/** The two ways card sets are valued, explained with the values from the server once they are in. */
+function cardTradeModes(
+  rules: CardTradeRulesResponse | undefined,
+): { value: CardTradeMode; title: string; description: string }[] {
+  const fixed = rules?.fixedSets.map((set) => set.troops) ?? []
+  const progressive = rules?.firstProgressiveValues.slice(0, SHOWN_PROGRESSIVE_VALUES) ?? []
+  return [
+    {
+      value: 'Fixed',
+      title: 'Faste værdier',
+      description:
+        fixed.length > 0
+          ? `Et sæt giver ${Math.min(...fixed)}–${Math.max(...fixed)} tropper efter kortene`
+          : 'Et sæt giver tropper efter kortene',
+    },
+    {
+      value: 'Progressive',
+      title: 'Stigende bonus',
+      description:
+        progressive.length > 0
+          ? `Hvert sæt giver mere: ${progressive.join(', ')}, …`
+          : 'Hvert sæt giver mere end det forrige',
+    },
+  ]
+}
 
 const TURN_TIMES = [
   { value: 0, label: 'Ingen' },
@@ -36,6 +81,8 @@ export default function CreateGamePanel({
   const [maxPlayers, setMaxPlayers] = useState(4)
   const [color, setColor] = useState<PlayerColor>('red')
   const [victoryMode, setVictoryMode] = useState<GameVictoryMode>('CompleteConquest')
+  const [cardTradeMode, setCardTradeMode] = useState<CardTradeMode>('Fixed')
+  const { data: cardTradeRules } = useQuery(cardTradeRulesQuery())
   const [hasFogOfWar, setHasFogOfWar] = useState(false)
   const [blizzardCount, setBlizzardCount] = useState(0)
   const [turnTimeLimit, setTurnTimeLimit] = useState(0)
@@ -48,6 +95,7 @@ export default function CreateGamePanel({
         maxPlayers,
         victoryMode,
         hasMissions: victoryMode === 'Mission',
+        cardTradeMode,
         hasFogOfWar,
         blizzardCount,
         turnTimeLimit,
@@ -75,35 +123,29 @@ export default function CreateGamePanel({
 
         <div>
           <FieldLabel>Sejrsbetingelse</FieldLabel>
-          <div role="radiogroup" aria-label="Sejrsbetingelse" className="grid grid-cols-2 gap-2">
-            {VICTORY_MODES.map((mode) => {
-              const selected = mode.value === victoryMode
-              return (
-                <button
-                  key={mode.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setVictoryMode(mode.value)}
-                  className={`rounded-xl border p-3 text-left transition ${
-                    selected
-                      ? 'border-amber-300/60 bg-amber-300/15'
-                      : 'border-white/10 bg-black/20 hover:border-white/20'
-                  }`}
-                >
-                  <span className="block font-serif text-stone-50">{mode.title}</span>
-                  <span className="block text-xs text-stone-400">{mode.description}</span>
-                </button>
-              )
-            })}
-          </div>
+          <ChoiceCards
+            label="Sejrsbetingelse"
+            options={VICTORY_MODES}
+            value={victoryMode}
+            onChange={setVictoryMode}
+          />
+        </div>
+
+        <div>
+          <FieldLabel hint="Når kort byttes">Bonustropper</FieldLabel>
+          <ChoiceCards
+            label="Bonustropper"
+            options={cardTradeModes(cardTradeRules)}
+            value={cardTradeMode}
+            onChange={setCardTradeMode}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
           <FieldLabel>Regler</FieldLabel>
           <Toggle
             title="Fog of war"
-            description="Du ser kun lande op til dine egne"
+            description="Du ser kun territorier op til dine egne"
             checked={hasFogOfWar}
             onChange={setHasFogOfWar}
           />
@@ -112,7 +154,7 @@ export default function CreateGamePanel({
               <span>
                 <span className="block text-sm font-medium text-stone-100">Snestorme</span>
                 <span className="block text-xs text-stone-400">
-                  Lande der er ufremkommelige hele spillet
+                  Territorier der er ufremkommelige hele spillet
                 </span>
               </span>
               <span className="font-serif text-xl text-amber-200 tabular-nums">

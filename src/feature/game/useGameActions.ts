@@ -10,7 +10,6 @@ import {
   startGame,
   tradeCards,
 } from './mutations'
-import { MAX_DEFENSE_DICE } from './rules'
 import type { BattleRoundDto, GamePhase } from './types'
 import type { TerritoryState } from '../map/types'
 
@@ -24,6 +23,9 @@ interface Move {
   from: TerritoryState
   to: TerritoryState
 }
+
+/** An attack: one roll with the given number of dice, or a blitz when dice is left out. */
+export type BattleVariables = Move & { dice?: number }
 
 /**
  * Refetches everything an action in the game can change. Run after every action, also a
@@ -54,18 +56,15 @@ export function useGameActions(gameId: string) {
 
     /** One roll with the given number of dice, or a blitz when dice is left out. */
     battle: useMutation({
-      mutationFn: async ({ from, to, dice }: Move & { dice?: number }): Promise<BattleReport> => {
+      mutationKey: queryKeys.games.battle(gameId),
+      mutationFn: async ({ from, to, dice }: BattleVariables): Promise<BattleReport> => {
         const territories = { fromTerritoryId: from.stateId, toTerritoryId: to.stateId }
         if (dice === undefined) {
           const result = await blitz(gameId, territories)
           return { rounds: result.rounds, conquered: result.territoryConquered }
         }
-        const result = await attack(gameId, {
-          ...territories,
-          attackingTroopsCount: dice,
-          // The defender always defends with as many dice as possible.
-          defendingTroopsCount: Math.min(MAX_DEFENSE_DICE, to.units),
-        })
+        // The server decides how many dice the defender rolls.
+        const result = await attack(gameId, { ...territories, attackingTroopsCount: dice })
         return { rounds: [result], conquered: result.territoryConquered }
       },
       onSettled,

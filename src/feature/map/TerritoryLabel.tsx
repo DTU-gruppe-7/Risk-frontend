@@ -1,16 +1,19 @@
+import { BADGE_OFFSET_Y, BADGE_RADIUS } from './badge'
+import { INK, PAPER } from './colors'
 import type { Point } from './types'
 
 interface TerritoryLabelProps {
   position: Point
   name: string
-  units: number | null
+  /**
+   * What the troop badge shows: the troops, "?" when they are hidden by fog of war, or null for
+   * no badge (e.g. a blizzard, which holds no troops).
+   */
+  badge: number | '?' | null
   ownerColor: string | null
 }
 
-const INK = '#4a3522'
-const PAPER = '#f3e7c9'
-
-function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelProps) {
+function TerritoryLabel({ position, name, ownerColor, badge }: TerritoryLabelProps) {
   return (
     <g transform={`translate(${position.x} ${position.y})`}>
       <text
@@ -27,12 +30,17 @@ function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelPro
       >
         {name}
       </text>
-      {/* No troop badge when there are no troops to show (e.g. a blizzard) */}
-      {units !== null && (
+      {badge !== null && (
         <>
-          <circle cy={5} r={6} fill={ownerColor ?? PAPER} stroke={INK} strokeWidth={0.8} />
+          <circle
+            cy={BADGE_OFFSET_Y}
+            r={BADGE_RADIUS}
+            fill={ownerColor ?? PAPER}
+            stroke={INK}
+            strokeWidth={0.8}
+          />
           <text
-            y={5}
+            y={BADGE_OFFSET_Y}
             textAnchor="middle"
             dominantBaseline="central"
             fontFamily="Georgia, serif"
@@ -40,7 +48,7 @@ function TerritoryLabel({ position, name, ownerColor, units }: TerritoryLabelPro
             fontSize={7.5}
             fill={ownerColor ? PAPER : INK}
           >
-            {units}
+            {badge}
           </text>
         </>
       )}

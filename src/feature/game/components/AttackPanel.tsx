@@ -3,6 +3,7 @@ import type { TerritoryNames, TerritoryState } from '../../map/types'
 import { MAX_ATTACK_DICE } from '../rules'
 import type { GameActions } from '../useGameActions'
 import BattleResult from './BattleResult'
+import TroopRoute from './TroopRoute'
 import { ActionBox, Button, ErrorText, Hint, TroopPicker } from './ui'
 
 interface AttackPanelProps {
@@ -10,12 +11,21 @@ interface AttackPanelProps {
   to: TerritoryState | null
   names: TerritoryNames
   battle: GameActions['battle']
+  /** The last roll is still being shown on the map: its result waits, and so does the next roll. */
+  isRollingDice: boolean
   endPhase: GameActions['endPhase']
 }
 
-export default function AttackPanel({ from, to, names, battle, endPhase }: AttackPanelProps) {
+export default function AttackPanel({
+  from,
+  to,
+  names,
+  battle,
+  isRollingDice,
+  endPhase,
+}: AttackPanelProps) {
   const [wantedDice, setWantedDice] = useState(MAX_ATTACK_DICE)
-  const isPending = battle.isPending || endPhase.isPending
+  const isPending = battle.isPending || endPhase.isPending || isRollingDice
   const nameOf = (territory: TerritoryState) =>
     names[territory.territoryId] ?? territory.territoryId
 
@@ -27,9 +37,7 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
     <ActionBox title="Angreb">
       {from && to ? (
         <>
-          <Hint>
-            {nameOf(from)} ({from.units}) angriber {nameOf(to)} ({to.units})
-          </Hint>
+          <TroopRoute from={from} to={to} names={names} verb="angriber" />
           <TroopPicker label="Terninger" max={maxDice} value={dice} onChange={setWantedDice} />
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -45,7 +53,7 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
               disabled={isPending}
               onClick={() => battle.mutate({ from, to })}
             >
-              Blitz
+              Lynangreb
             </Button>
           </div>
         </>
@@ -56,7 +64,7 @@ export default function AttackPanel({ from, to, names, battle, endPhase }: Attac
             : 'Vælg et af dine territorier med mindst 2 tropper.'}
         </Hint>
       )}
-      {battle.data && <BattleResult report={battle.data} />}
+      {battle.data && !isRollingDice && <BattleResult report={battle.data} />}
       <ErrorText error={battle.error ?? endPhase.error} />
       <Button
         size="sm"

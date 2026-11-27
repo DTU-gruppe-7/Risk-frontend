@@ -1,5 +1,131 @@
 @import 'tailwindcss';
 
+@theme {
+  /* An announcement on the map (see Announcement.tsx): pops in, stays a moment and fades out. */
+  --animate-announcement: announcement 2.8s ease-out forwards;
+
+  @keyframes announcement {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    12% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    20% {
+      transform: scale(1);
+    }
+    80% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  /* Dashes running along an arrow on the map. The offset is one dash and gap (3 + 5). */
+  --animate-arrow-flow: arrow-flow 0.6s linear infinite;
+
+  @keyframes arrow-flow {
+    to {
+      stroke-dashoffset: -8;
+    }
+  }
+
+  /* The dice of an attack on the map (see AttackDice.tsx). */
+  /* A die rolling over and over while the roll is on its way. */
+  --animate-dice-tumble: dice-tumble 0.45s linear infinite;
+
+  @keyframes dice-tumble {
+    0% {
+      transform: translateY(0) rotate(0deg);
+    }
+    25% {
+      transform: translateY(-0.4rem) rotate(90deg);
+    }
+    50% {
+      transform: translateY(0) rotate(180deg);
+    }
+    75% {
+      transform: translateY(-0.25rem) rotate(270deg);
+    }
+    100% {
+      transform: translateY(0) rotate(360deg);
+    }
+  }
+
+  /* A die coming to rest on the value it was rolled. */
+  --animate-dice-land: dice-land 0.35s ease-out;
+
+  @keyframes dice-land {
+    0% {
+      transform: scale(1.35) rotate(-12deg);
+    }
+    60% {
+      transform: scale(0.92) rotate(3deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  /* The winning die of a pair hitting the losing one; --strike-y is how far it goes. */
+  --animate-dice-strike: dice-strike 0.7s ease-in-out both;
+
+  @keyframes dice-strike {
+    0% {
+      transform: none;
+    }
+    20% {
+      transform: translateY(calc(var(--strike-y) * -0.25)) scale(1.1);
+    }
+    36% {
+      transform: translateY(var(--strike-y)) scale(1.1);
+    }
+    50% {
+      transform: translateY(calc(var(--strike-y) * 0.8)) scale(1.05);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  /* A piece of the losing die flying off; --shard-x, --shard-y and --shard-r say where to. */
+  --animate-dice-shard: dice-shard 0.6s ease-out both;
+
+  @keyframes dice-shard {
+    0% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--shard-x), var(--shard-y)) rotate(var(--shard-r)) scale(0.7);
+    }
+  }
+
+  @keyframes announcement-fade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    10%,
+    85% {
+      opacity: 1;
+    }
+  }
+}
+
+/* Without movement for those who have asked their system for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-announcement {
+    animation-name: announcement-fade;
+  }
+}
+
 @keyframes backdrop-drift {
   from {
     transform: scale(1.1) translate(0, 0);

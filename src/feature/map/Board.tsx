@@ -1,21 +1,29 @@
 import mapBackground from '../../assets/map/map-background.svg'
 import { MAP_HEIGHT, MAP_WIDTH, MAP_VIEWBOX, territoryGeometries } from './geometry'
+import TerritoryArrow from './TerritoryArrow'
 import TerritoryLabel from './TerritoryLabel'
+import { continentOwnerOf } from './continents'
 import { seaRoutes } from './seaRoutes'
 import type {
   ContinentId,
   MapContinentDto,
   Point,
+  RemoteSelection,
+  TerritoryGeometry,
   TerritoryId,
   TerritoryNames,
   TerritoryState,
   TerritoryInfo,
   Player,
 } from './types'
-import { BLIZZARD_COLOR, CONTINENT_COLORS, FOG_COLOR, NEUTRAL_BORDER_COLOR } from './colors'
-
-const INK = '#4a3522'
-const PAPER = '#f3e7c9'
+import {
+  BLIZZARD_COLOR,
+  CONTINENT_COLORS,
+  FOG_COLOR,
+  INK,
+  NEUTRAL_BORDER_COLOR,
+  PAPER,
+} from './colors'
 
 /** Where each continent's bonus is written: a spot in the sea right next to the continent. */
 const BONUS_POSITIONS: Record<ContinentId, Point> = {
@@ -28,9 +36,12 @@ const BONUS_POSITIONS: Record<ContinentId, Point> = {
 }
 
 /** How far outside a continent its border reaches, in map units. */
-const CONTINENT_BORDER_WIDTH = 1.8
+const CONTINENT_BORDER_WIDTH = 1.2
 /** The width of the black line on each side of a player's border. */
-const CONTINENT_BORDER_EDGE = 0.6
+const CONTINENT_BORDER_EDGE = 0.4
+/** How strongly the borders are drawn: clear, but toned down so they do not take the attention. */
+const HELD_CONTINENT_BORDER_OPACITY = 0.85
+const NEUTRAL_CONTINENT_BORDER_OPACITY = 0.65
 
 interface BoardProps {
   territories: TerritoryState[]
@@ -43,7 +54,24 @@ interface BoardProps {
   highlightedIds?: TerritoryId[]
   /** The chosen one among the highlighted territories. */
   targetId?: TerritoryId | null
+  /** What another player has picked, e.g. the opponent whose turn it is. */
+  remoteSelection?: RemoteSelection | null
+  /** Routes to draw an arrow along, each from its first territory to its last. */
+  arrowRoutes?: TerritoryId[][]
   onTerritoryClick: (id: TerritoryId) => void
+}
+
+/** The colour of the line around a picked territory, unless another player picked it. */
+const SELECTION_COLOR = '#fff6dc'
+
+/** The line around a picked territory: dark on the outside, so it shows on any colour. */
+function SelectionOutline({ territory, color }: { territory: TerritoryGeometry; color: string }) {
+  return (
+    <g>
+      <path d={territory.path} stroke={INK} strokeWidth={2.0} />
+      <path d={territory.path} stroke={color} strokeWidth={1.0} />
+    </g>
+  )
 }
 
 function Board({
@@ -55,6 +83,8 @@ function Board({
   selectedId,
   highlightedIds = [],
   targetId = null,
+  remoteSelection = null,
+  arrowRoutes = [],
   onTerritoryClick,
 }: BoardProps) {
   const stateById = new Map(territories.map((t) => [t.territoryId, t]))
@@ -66,30 +96,27 @@ function Board({
   const isVisible = (id: TerritoryId) => stateById.get(id)?.visible ?? false
   const isPlayable = (id: TerritoryId) => isVisible(id) && !isBlizzard(id)
 
-  const selected =
-    selectedId && isPlayable(selectedId)
-      ? territoryGeometries.find((t) => t.id === selectedId)
-      : undefined
+  /** The shape of a territory that can be picked, or undefined when there is none. */
+  const playableGeometryOf = (id: TerritoryId | null | undefined) =>
+    id && isPlayable(id) ? territoryGeometries.find((t) => t.id === id) : undefined
+
+  const selected = playableGeometryOf(selectedId)
   const highlighted = territoryGeometries.filter(
     (t) => highlightedIds.includes(t.id) && isPlayable(t.id),
   )
   const target = highlighted.find((t) => t.id === targetId)
+  const remoteSource = playableGeometryOf(remoteSelection?.sourceId)
+  const remoteTarget = playableGeometryOf(remoteSelection?.targetId)
+  const pickedIds = [selectedId, targetId, remoteSource?.id, remoteTarget?.id]
+  // An arrow is only drawn when every territory on its way can be seen.
+  const arrows = arrowRoutes
+    .map((route) => route.map(playableGeometryOf))
+    .filter((route): route is TerritoryGeometry[] => route.every((t) => t !== undefined))
 
-  /**
-   * The colour of the player who holds every territory of a continent, or null when nobody does.
-   * Blizzards cannot be held and do not count. Under fog of war it is only known when the whole
-   * continent can be seen.
-   */
+  /** The colour of the player who holds every territory of a continent, or null when nobody does. */
   function continentOwnerColor(continentId: ContinentId) {
-    const states = infos
-      .filter((info) => info.continent === continentId)
-      .map((info) => stateById.get(info.id))
-      .filter((state) => !state?.blizzard)
-    const ownerId = states[0]?.ownerId
-    if (!ownerId || !states.every((state) => state?.visible && state.ownerId === ownerId)) {
-      return null
-    }
-    return playersById.get(ownerId)?.color ?? null
+    const ownerId = continentOwnerOf(continentId, territories, infos)
+    return ownerId ? (playersById.get(ownerId)?.color ?? null) : null
   }
 
   const continentOwners = continents.map((continent) => ({
@@ -111,7 +138,7 @@ function Board({
       {/* Layer 2: sea routes (a route into a blizzard leads nowhere, so it is hidden) */}
       <g
         fill="none"
-        stroke="#4a3522"
+        stroke={INK}
         strokeOpacity={0.75}
         strokeWidth={1.1}
         strokeDasharray="3 2.5"
@@ -129,7 +156,7 @@ function Board({
       <g>
         {territoryGeometries.map((territory) => {
           const playable = isPlayable(territory.id)
-          const isSelected = playable && (territory.id === selectedId || territory.id === targetId)
+          const isSelected = playable && pickedIds.includes(territory.id)
 
           return (
             <path
@@ -138,7 +165,7 @@ function Board({
               d={territory.path}
               fill={fillFor(territory.id)}
               fillOpacity={isSelected ? 1.0 : 0.75}
-              stroke="#4a3522"
+              stroke={INK}
               strokeWidth={0.7}
               strokeLinejoin="round"
               style={{ mixBlendMode: 'multiply' }}
@@ -211,7 +238,7 @@ function Board({
               filter={`url(#continent-border-${continent.id})`}
               stroke="black"
               strokeWidth={0.7}
-              opacity={color ? 1 : 0.9}
+              opacity={color ? HELD_CONTINENT_BORDER_OPACITY : NEUTRAL_CONTINENT_BORDER_OPACITY}
             >
               {territoryGeometries
                 .filter((t) => infoById.get(t.id)?.continent === continent.id)
@@ -223,23 +250,40 @@ function Board({
         ))}
       </g>
 
-      {/* Layer 5: selection, possible choices and the chosen target */}
+      {/* Layer 5: selection, possible choices, the chosen target and another player's picks */}
       <g fill="none" strokeLinejoin="round" pointerEvents="none">
         {highlighted.map((t) => (
-          <path key={t.id} d={t.path} stroke="#fff6dc" strokeWidth={1.2} strokeDasharray="3 2" />
+          <path
+            key={t.id}
+            d={t.path}
+            stroke={SELECTION_COLOR}
+            strokeWidth={1.2}
+            strokeDasharray="3 2"
+          />
         ))}
         {[selected, target].map(
-          (t) =>
-            t && (
-              <g key={t.id}>
-                <path d={t.path} stroke="#4a3522" strokeWidth={2.0} />
-                <path d={t.path} stroke="#fff6dc" strokeWidth={1.0} />
-              </g>
-            ),
+          (t) => t && <SelectionOutline key={t.id} territory={t} color={SELECTION_COLOR} />,
         )}
+        {remoteSelection &&
+          [remoteSource, remoteTarget].map(
+            (t) =>
+              t && (
+                <SelectionOutline
+                  key={`remote:${t.id}`}
+                  territory={t}
+                  color={remoteSelection.color}
+                />
+              ),
+          )}
       </g>
 
-      {/* Layer 6: what each continent gives per turn, in the colour of the player who holds it */}
+      {/* Layer 6: arrows, e.g. from what was picked to its target. Drawn below the labels, so the
+          troops stay readable. */}
+      {arrows.map((route) => (
+        <TerritoryArrow key={route.map((t) => t.id).join('>')} route={route} />
+      ))}
+
+      {/* Layer 7: what each continent gives per turn, in the colour of the player who holds it */}
       <g pointerEvents="none" fontFamily="Georgia, serif" fontWeight="bold" fontSize={11}>
         {continentOwners.map(({ continent, color }) => {
           const position = BONUS_POSITIONS[continent.id]
@@ -270,18 +314,21 @@ function Board({
         })}
       </g>
 
-      {/* Layer 7: names and troops (blizzards get a name but no troops) */}
+      {/* Layer 8: names and troops. Blizzards get a name but no troops, and a territory hidden by
+          fog of war gets a "?", as neither its owner nor its troops can be seen. */}
       <g pointerEvents="none">
         {territoryGeometries.map((territory) => {
           const state = stateById.get(territory.id)
-          if (!state || !isVisible(territory.id)) return null
+          const isHidden = !state || !isVisible(territory.id)
           return (
             <TerritoryLabel
               key={territory.id}
               position={territory.labelPosition}
               name={names[territory.id] ?? territory.id}
-              ownerColor={state.ownerId ? (playersById.get(state.ownerId)?.color ?? null) : null}
-              units={state.blizzard ? null : state.units}
+              ownerColor={
+                !isHidden && state.ownerId ? (playersById.get(state.ownerId)?.color ?? null) : null
+              }
+              badge={isHidden ? '?' : state.blizzard ? null : state.units}
             />
           )
         })}
