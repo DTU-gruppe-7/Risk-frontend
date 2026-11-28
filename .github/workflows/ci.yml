@@ -30,7 +30,22 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run format:check
       - run: npm run lint -- --max-warnings=0
-      - run: npm test
+      - run: npm run coverage
+
+      - name: Coverage-rapport
+        if: always() && hashFiles('coverage/coverage-summary.json') != ''
+        run: |
+          {
+            echo '## Frontend coverage'
+            echo ''
+            echo '| Fil | Linjer | Branches | Funktioner |'
+            echo '|---|---|---|---|'
+            jq -r '
+              to_entries
+              | map(select(.key == "total" or .value.lines.pct > 0))
+              | .[]
+              | "| \(.key | sub(".*/src/";)) | \(.value.lines.pct)% | \ (.value.branches.pct)% | \(.value.functions.pct)% |" ' coverage/coverage-summary.json
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: npm run build
 
   smoke-test:

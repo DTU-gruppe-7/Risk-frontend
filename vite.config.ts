@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv } from 'vite'
@@ -68,6 +69,22 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': { target: proxyTarget, changeOrigin: true },
         '/hubs': { target: proxyTarget, changeOrigin: true, ws: true },
+      },
+    },
+    test: {
+      coverage: {
+        provider: 'v8',
+        // Tag alle kildefiler med, også dem uden tests, så totalen er ærlig.
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/**/*.test.ts', 'src/types/**', 'src/**/*.d.ts'],
+        reporter: ['text', 'json-summary', 'html'],
+        // Lidt under de nuværende tal, så coverage ikke falder for den testede logik.
+        thresholds: {
+          'src/feature/game/rules.ts': { statements: 70, branches: 70, functions: 75, lines: 75 },
+          'src/api/auth/session.ts': { statements: 90, branches: 80, functions: 100, lines: 95 },
+          'src/realtime/hubLease.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+          'src/api/client.ts': { statements: 90, branches: 90, functions: 75, lines: 90 },
+        },
       },
     },
   }
