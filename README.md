@@ -1,6 +1,7 @@
 # Risk Frontend
 
 React 19 + Vite + TanStack Router/Query + Tailwind + SignalR client for the online Risk board game.
+The API contract is `Risk.Api/openapi.json` in the backend repo.
 
 ## Local Development
 
@@ -20,94 +21,47 @@ so the browser only ever sees `localhost:5173` — no CORS setup is needed.
 Start the backend as described in the backend repo's README. It listens on `http://localhost:5081`, which is
 where the proxy points by default, so nothing needs to be configured.
 
-### Against the dev server
+### Against the shared dev server
 
-To work on the frontend without running the backend, point the proxy at the shared dev environment by creating
-`.env.development.local` (git-ignored):
+To work on the frontend without running the backend, point the proxy at the group's dev environment by
+setting `VITE_PROXY_TARGET` in `.env.development.local` (git-ignored). The address is in the README of the
+private `Risk-infrastructure` repo. Restart `npm run dev` afterwards; delete the line to go back to the local
+backend.
 
-```bash
-VITE_PROXY_TARGET=https://130.225.170.66:8443
-```
+The dev environment's data is shared with the rest of the group, and it runs the code from `develop`, so API
+changes on your own backend branch are not there yet. `VITE_PROXY_TARGET` is only read by Vite's Node process
+and never ends up in the browser bundle.
 
-Restart `npm run dev` afterwards. Delete the file (or the line) to go back to the local backend.
+## Commands
 
-Keep in mind that the dev environment's data is shared with the rest of the group, and that it runs the code
-from `develop` — API changes on your own backend branch are not there yet.
+| Command                           | What it does                                                          |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `npm run dev`                     | Dev server with hot reload and the API proxy                          |
+| `npm run build`                   | Type check (`tsc -b`, also the tests) and production build to `dist/` |
+| `npm test`                        | Vitest, once                                                          |
+| `npm run coverage`                | Vitest with coverage and per-file thresholds; this is what CI runs    |
+| `npm run lint`                    | ESLint (CI uses `--max-warnings=0`)                                   |
+| `npm run format` / `format:check` | Prettier                                                              |
+| `npm run gen:api`                 | Types from the backend's `openapi.json`                               |
 
-`VITE_PROXY_TARGET` is only read by Vite's Node process and never ends up in the browser bundle.
+The husky pre-commit hook runs ESLint and Prettier on staged files and `npm run build`.
 
----
+## Tests
 
-## Vite Template Notes
+Tests are `*.test.ts` next to the code they test and run in Node without a DOM. They cover the logic where a
+bug is expensive or invisible: the client-side game rules, session and token refresh, the API client's 401
+retry, the SignalR connection leases and the consistency of the hand-written map data. There are no
+component or end-to-end tests.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## PWA
 
-Currently, two official plugins are available:
+`vite-plugin-pwa` generates the manifest and a Workbox service worker at build time, so it is not active in
+`npm run dev`; use `npm run build && npm run preview` to try it. The app shell and `/assets/` are precached.
+`/api` and `/hubs` are `NetworkOnly` and must never be cached, because the server owns the game state.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Production Image
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+The `Dockerfile` builds the app and serves it with nginx as a non-root user (uid 65532) on a read-only file
+system, with SPA fallback routing and `/healthz`. All response headers, including the Content Security Policy,
+are set at server level in `nginx.conf`, never inside a `location` (an `add_header` there would drop the
+inherited ones). CI starts the hardened container and checks the headers, caching and PWA files.
