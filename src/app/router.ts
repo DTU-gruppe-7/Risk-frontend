@@ -4,13 +4,13 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   redirect,
 } from '@tanstack/react-router'
 import { getSession, subscribeSession } from '../api/auth/session'
 import { queryClient } from '../api/query/queryClient'
 import LoginPage from '../auth/LoginPage'
 import RegisterPage from '../auth/RegisterPage'
-import GamePage, { GameErrorPage } from '../feature/game/GamePage'
 import { gameQuery } from '../feature/game/queries'
 import { mapQuery } from '../feature/map/queries'
 import App from './App'
@@ -78,8 +78,8 @@ const gameRoute = createRoute({
       context.queryClient.ensureQueryData(gameQuery(params.gameId)),
       context.queryClient.ensureQueryData(mapQuery()),
     ]),
-  component: GamePage,
-  errorComponent: GameErrorPage,
+  component: lazyRouteComponent(() => import('../feature/game/GamePage')),
+  errorComponent: lazyRouteComponent(() => import('../feature/game/GamePage'), 'GameErrorPage'),
 })
 
 const routeTree = rootRoute.addChildren([
