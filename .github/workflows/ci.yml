@@ -44,7 +44,9 @@ jobs:
               to_entries
               | map(select(.key == "total" or .value.lines.pct > 0))
               | .[]
-              | "| \(.key | sub(".*/src/";)) | \(.value.lines.pct)% | \ (.value.branches.pct)% | \(.value.functions.pct)% |" ' coverage/coverage-summary.json
+              | (.key | split("/src/") | last) as $fil
+              | "| \($fil) | \(.value.lines.pct)% | \(.value.branches.pct)% | \(.value.functions.pct)% |"
+            ' coverage/coverage-summary.json
           } >> "$GITHUB_STEP_SUMMARY"
       - run: npm run build
 
